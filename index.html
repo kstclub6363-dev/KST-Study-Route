@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KST Study Route - Final Fix</title>
+    <title>KST Study Route - Multi Subjects Fix</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
     
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -49,10 +49,11 @@
         .btn-login.student { background: var(--primary); }
         .btn-login.manager { background: var(--manager); }
 
-        /* メインエリア */
-        .main-content { flex: 1; overflow-y: auto; padding: 20px; }
+        /* 🌟 メインエリア (下部の余白を大幅に増やしてスクロール隠れを防止) */
+        .main-content { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 120px; }
         .section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end; color: #1c1c1e; }
         
+        /* ガイドパネル */
         .guide-panel { background: #E8F4FD; border-radius: 16px; padding: 16px; margin-bottom: 20px; border: 2px solid #BBDEFB; }
         .guide-panel h3 { color: #1976D2; font-size: 1rem; margin-bottom: 10px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
         .guide-panel ul { padding-left: 0; font-size: 0.8rem; color: #444; line-height: 1.5; list-style-type: none; margin: 0;}
@@ -69,6 +70,7 @@
         .lap-badge { font-size: 0.75rem; background: #E5E5EA; color: #333; padding: 2px 8px; border-radius: 8px; font-weight: 700; }
         .btn-edit { background: none; border: none; color: var(--text-sub); font-size: 1rem; cursor: pointer; }
         
+        /* ステータスバナー */
         .status-banner { padding: 10px; border-radius: 10px; font-weight: 700; font-size: 0.9rem; margin-bottom: 12px; text-align: center; }
         .status-banner.advance { background: #E3F2FD; color: #1976D2; border: 1px solid #BBDEFB; }
         .status-banner.review { background: #FFF3E0; color: #F57C00; border: 1px solid #FFE0B2; }
@@ -90,6 +92,7 @@
         .btn-next-step { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,122,255,0.2); margin-top: 10px; }
         .btn-undo { width: 100%; padding: 12px; background: transparent; border: 1.5px solid #8E8E93; color: #8E8E93; border-radius: 12px; font-weight: 700; font-size: 0.9rem; cursor: pointer; margin-top: 10px; }
         
+        /* 右下フローティング追加ボタン */
         .fab-add { position: fixed; bottom: 85px; right: 20px; width: 60px; height: 60px; background: var(--primary); color: white; border: none; border-radius: 50%; font-size: 30px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,122,255,0.4); cursor: pointer; display: flex; justify-content: center; align-items: center; z-index: 100; transition: transform 0.2s; }
         .fab-add:active { transform: scale(0.9); }
 
@@ -120,6 +123,7 @@
         .btn-cancel { background: #F2F2F7; color: var(--text-main); }
         .btn-submit { background: var(--primary); color: white; }
         .btn-delete { background: #FFEBEE; color: #D32F2F; width: 100%; padding: 12px; border: none; border-radius: 12px; font-weight: bold; margin-top: 15px; cursor: pointer; }
+        .btn-delete-student { background: transparent; border: 1px solid #FF3B30; color: #FF3B30; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
 
         /* ボトムナビ */
         .bottom-nav { width: 100%; background: #fff; border-top: 1px solid #E5E5EA; display: flex; justify-content: space-around; padding: 12px 0 20px 0; z-index: 10; flex-shrink: 0; margin-top: auto; }
@@ -289,14 +293,17 @@
     let currentUser = localStorage.getItem('kst_cloud_user');
     let isInitialized = false;
 
+    // データキーはそのまま
     database.ref('kst_app_data_v26').on('value', (snapshot) => {
         document.getElementById('loading-screen').style.display = 'none';
+        
         if (snapshot.exists()) {
             db = snapshot.val();
             if (!db.users) db.users = {};
             if (!db.subjects) db.subjects = {};
             if (!db.lastAdvancedDate) db.lastAdvancedDate = "";
         }
+
         if (!isInitialized) {
             App.init(); 
             isInitialized = true;
@@ -421,8 +428,11 @@
                 const sub = db.subjects[currentUser][index];
                 document.getElementById('sub-title').value = sub.title;
                 document.getElementById('sub-unit').value = sub.unit || 'page';
-                document.getElementById('sub-start').value = sub.startNum;
-                document.getElementById('sub-end').value = sub.endNum;
+                
+                // 🌟 古いデータ互換性エラー防止
+                document.getElementById('sub-start').value = sub.startNum !== undefined ? sub.startNum : 1;
+                document.getElementById('sub-end').value = sub.endNum !== undefined ? sub.endNum : (sub.totalVol || 1);
+                
                 document.getElementById('sub-laps').value = sub.laps || 1;
                 document.getElementById('sub-date').value = sub.targetDate;
                 document.getElementById('btn-delete-sub').style.display = 'block';
@@ -489,7 +499,6 @@
 
             this.saveDB();
             this.closeSubjectModal();
-            this.refreshUI(); // 🌟 保存直後に確実にUIを更新
         },
 
         deleteSubject: function() {
@@ -498,7 +507,6 @@
                 db.subjects[currentUser].splice(editIndex, 1);
                 this.saveDB();
                 this.closeSubjectModal();
-                this.refreshUI(); // 🌟 削除直後に確実にUIを更新
             }
         },
 
@@ -507,12 +515,10 @@
             if(noteInput) db.subjects[currentUser][subIndex].weakNotes = noteInput.value;
             db.subjects[currentUser][subIndex].step = 2;
             this.saveDB();
-            this.refreshUI();
         },
         backToStep1: function(subIndex) {
             db.subjects[currentUser][subIndex].step = 1;
             this.saveDB();
-            this.refreshUI();
         },
         updateCount: function(subIndex, type, change) {
             let sub = db.subjects[currentUser][subIndex];
@@ -520,7 +526,6 @@
             sub[type] += change;
             if(sub[type] < 0) sub[type] = 0;
             this.saveDB();
-            this.refreshUI();
         },
         updateNotes: function(subIndex, value) {
             db.subjects[currentUser][subIndex].weakNotes = value;
@@ -528,6 +533,7 @@
         },
 
         formatUnitLabel: function(num, unitType) {
+            if (isNaN(num)) return "-"; // 🌟 古いデータ防御
             if (unitType === 'page') return `P${num}`;
             if (unitType === 'question') return `問${num}`;
             if (unitType === 'chapter') return `第${num}章`;
@@ -544,23 +550,29 @@
             let sub = db.subjects[currentUser][subIndex];
             if(sub.isCompletedToday) return;
 
+            // 🌟 古いデータのための安全な初期化
+            let s_start = sub.startNum !== undefined ? sub.startNum : 1;
+            let s_end = sub.endNum !== undefined ? sub.endNum : (sub.totalVol || 1);
+            let s_unit = sub.unit || 'none';
+            let s_quota = sub.quota || 1;
+
             let isAdvance = (sub.cycleDay >= 1 && sub.cycleDay <= 4);
             let isTest = (sub.cycleDay === 7);
             
-            let startNum = sub.startNum + sub.completedVol;
-            let endNum = Math.min(startNum + sub.quota - 1, sub.endNum);
-            let cycleStartVol = Math.max(0, sub.completedVol - (sub.cycleDay - 1) * sub.quota);
-            let cycleEndVol = cycleStartVol + (sub.quota * 4) - 1;
+            let startNum = s_start + sub.completedVol;
+            let endNum = Math.min(startNum + s_quota - 1, s_end);
+            let cycleStartVol = Math.max(0, sub.completedVol - (sub.cycleDay - 1) * s_quota);
+            let cycleEndVol = cycleStartVol + (s_quota * 4) - 1;
             
-            let displayStart = this.formatUnitLabel(startNum, sub.unit);
-            let displayEnd = this.formatUnitLabel(endNum, sub.unit);
-            let weekStartLabel = this.formatUnitLabel(sub.startNum + cycleStartVol, sub.unit);
-            let weekEndLabel = this.formatUnitLabel(Math.min(sub.startNum + cycleEndVol, sub.endNum), sub.unit);
+            let displayStart = this.formatUnitLabel(startNum, s_unit);
+            let displayEnd = this.formatUnitLabel(endNum, s_unit);
+            let weekStartLabel = this.formatUnitLabel(s_start + cycleStartVol, s_unit);
+            let weekEndLabel = this.formatUnitLabel(Math.min(s_start + cycleEndVol, s_end), s_unit);
 
             if (isAdvance) {
-                let currentStart = sub.startNum + sub.completedVol;
-                let defaultEnd = Math.min(currentStart + sub.quota - 1, sub.endNum);
-                let unitName = this.getUnitName(sub.unit);
+                let currentStart = s_start + sub.completedVol;
+                let defaultEnd = Math.min(currentStart + s_quota - 1, s_end);
+                let unitName = this.getUnitName(s_unit);
                 
                 let msg = `【最終確認】\n印をつけた問題以外は、すべて自力で解ける(○)状態になりましたか？\n\n今日完璧にした最後の「${unitName}」を数字で入力してください。`;
                 
@@ -568,19 +580,19 @@
                 if (input === null) return; 
                 
                 let newEndNum = parseInt(input);
-                if (isNaN(newEndNum) || newEndNum < (currentStart - 1) || newEndNum > sub.endNum) {
+                if (isNaN(newEndNum) || newEndNum < (currentStart - 1) || newEndNum > s_end) {
                     alert(`正しい数値を入力してください。`);
                     return;
                 }
                 
                 sub.history = { 
                     completedVol: sub.completedVol, tri: sub.tri, cross: sub.cross, 
-                    step: sub.step || 1, currentLap: sub.currentLap || 1, quota: sub.quota, 
+                    step: sub.step || 1, currentLap: sub.currentLap || 1, quota: s_quota, 
                     completedAt: sub.completedAt || "",
                     weakStock: sub.weakStock ? JSON.parse(JSON.stringify(sub.weakStock)) : []
                 };
                 
-                let actualEndLabel = this.formatUnitLabel(newEndNum, sub.unit);
+                let actualEndLabel = this.formatUnitLabel(newEndNum, s_unit);
                 sub.lastCompletedRangeText = displayStart + " 〜 " + actualEndLabel;
                 sub.lastCompletedWeekGoalText = weekStartLabel + " 〜 " + weekEndLabel;
                 sub.completedAt = this.getNowTimeString();
@@ -601,27 +613,27 @@
                 }
                 
                 sub.isCompletedToday = true;
-                sub.completedVol = Math.max(sub.completedVol, newEndNum - sub.startNum + 1);
+                sub.completedVol = Math.max(sub.completedVol, newEndNum - s_start + 1);
                 
-                if(sub.completedVol >= sub.totalVol) {
-                    sub.completedVol = sub.totalVol;
+                let totalVol = sub.totalVol || 1;
+                if(sub.completedVol >= totalVol) {
+                    sub.completedVol = totalVol;
                     const totalLaps = sub.laps || 1;
                     if ((sub.currentLap || 1) < totalLaps) {
                         sub.currentLap = (sub.currentLap || 1) + 1;
                         sub.completedVol = 0; 
-                        sub.quota = this.calculateQuota(sub.totalVol, sub.completedVol, sub.targetDate, totalLaps, sub.currentLap);
+                        sub.quota = this.calculateQuota(totalVol, sub.completedVol, sub.targetDate, totalLaps, sub.currentLap);
                         alert(`🎉 おめでとうございます！\n「${sub.title}」の ${sub.currentLap - 1}周目が完了しました！\n次は ${sub.currentLap}周目 に突入します！`);
                     }
                 }
                 this.saveDB();
-                this.refreshUI();
 
             } else if (isTest) {
                 let msg = `【最終確認】\n今週の範囲の確認テストは完璧でしたか？\n(はいを押すと来週のサイクルに進む準備が完了します)`;
                 if(confirm(msg)) {
                     sub.history = { 
                         completedVol: sub.completedVol, tri: sub.tri, cross: sub.cross, 
-                        step: sub.step || 1, currentLap: sub.currentLap || 1, quota: sub.quota, 
+                        step: sub.step || 1, currentLap: sub.currentLap || 1, quota: s_quota, 
                         weakNotes: sub.weakNotes || "", completedAt: sub.completedAt || "",
                         weakStock: sub.weakStock ? JSON.parse(JSON.stringify(sub.weakStock)) : []
                     };
@@ -630,14 +642,13 @@
                     sub.completedAt = this.getNowTimeString();
                     sub.isCompletedToday = true;
                     this.saveDB();
-                    this.refreshUI();
                 }
             } else {
                 let msg = `【最終確認】\n復習対象の問題はすべて完璧(○)になりましたか？\n(はいを押すと、今週の弱点ストックがリセットされます)`;
                 if(confirm(msg)) {
                     sub.history = { 
                         completedVol: sub.completedVol, tri: sub.tri, cross: sub.cross, 
-                        step: sub.step || 1, currentLap: sub.currentLap || 1, quota: sub.quota, 
+                        step: sub.step || 1, currentLap: sub.currentLap || 1, quota: s_quota, 
                         weakNotes: sub.weakNotes || "", completedAt: sub.completedAt || "",
                         weakStock: sub.weakStock ? JSON.parse(JSON.stringify(sub.weakStock)) : []
                     };
@@ -650,7 +661,6 @@
                     sub.weakNotes = ""; 
                     sub.weakStock = []; 
                     this.saveDB();
-                    this.refreshUI();
                 }
             }
         },
@@ -675,7 +685,6 @@
                     if(sub.history.weakStock) sub.weakStock = sub.history.weakStock;
                 }
                 this.saveDB();
-                this.refreshUI();
             }
         },
 
@@ -706,6 +715,12 @@
             let globalHasReview = false;
 
             subjects.forEach((sub, index) => {
+                // 🌟 古いデータ互換性用フォールバック
+                let s_start = sub.startNum !== undefined ? sub.startNum : 1;
+                let s_end = sub.endNum !== undefined ? sub.endNum : (sub.totalVol || 1);
+                let s_unit = sub.unit || 'none';
+                let s_quota = sub.quota || 1;
+
                 const cDay = sub.cycleDay;
                 let isAdvance = (cDay >= 1 && cDay <= 4);
                 let isTest = (cDay === 7);
@@ -778,22 +793,22 @@
                     `;
                 } else {
                     if(isAdvance) {
-                        const startNum = sub.startNum + activeCompletedVol;
-                        const endNum = Math.min(startNum + sub.quota - 1, sub.endNum);
+                        const startNum = s_start + activeCompletedVol;
+                        const endNum = Math.min(startNum + s_quota - 1, s_end);
                         const step = sub.step || 1;
 
-                        const displayStart = this.formatUnitLabel(startNum, sub.unit);
-                        const displayEnd = this.formatUnitLabel(endNum, sub.unit);
+                        const displayStart = this.formatUnitLabel(startNum, s_unit);
+                        const displayEnd = this.formatUnitLabel(endNum, s_unit);
                         
-                        let cycleStartVol = Math.max(0, activeCompletedVol - (cDay - 1) * sub.quota);
-                        let cycleEndVol = cycleStartVol + (sub.quota * 4) - 1;
-                        let weekStartLabel = this.formatUnitLabel(sub.startNum + cycleStartVol, sub.unit);
-                        let weekEndLabel = this.formatUnitLabel(Math.min(sub.startNum + cycleEndVol, sub.endNum), sub.unit);
+                        let cycleStartVol = Math.max(0, activeCompletedVol - (cDay - 1) * s_quota);
+                        let cycleEndVol = cycleStartVol + (s_quota * 4) - 1;
+                        let weekStartLabel = this.formatUnitLabel(s_start + cycleStartVol, s_unit);
+                        let weekEndLabel = this.formatUnitLabel(Math.min(s_start + cycleEndVol, s_end), s_unit);
 
                         taskHtml = `
                             ${statusBannerHtml}
                             <div style="font-size: 0.75rem; color: #8E8E93; margin-bottom: 8px;">
-                                💡 今週(4日間)の目標: <strong>${weekStartLabel} 〜 ${weekEndLabel}</strong> (1日 ${sub.quota}${this.getUnitName(sub.unit)})
+                                💡 今週(4日間)の目標: <strong>${weekStartLabel} 〜 ${weekEndLabel}</strong> (1日 ${s_quota}${this.getUnitName(s_unit)})
                             </div>
                             <div class="task-detail" style="margin-bottom:4px;"><span>今日の範囲</span> <strong>${displayStart} 〜 ${displayEnd}</strong></div>
                             ${mapHtml}
@@ -805,7 +820,7 @@
                                         <div class="counter-label"><span class="badge-tri">△</span> 説明不可</div>
                                         <div class="stepper">
                                             <button class="btn-step" onclick="App.updateCount(${index}, 'tri', -1)">-</button>
-                                            <div class="count-val">${sub.tri}</div>
+                                            <div class="count-val">${sub.tri || 0}</div>
                                             <button class="btn-step" onclick="App.updateCount(${index}, 'tri', 1)">+</button>
                                         </div>
                                     </div>
@@ -813,7 +828,7 @@
                                         <div class="counter-label"><span class="badge-cross">×</span> 解けない</div>
                                         <div class="stepper">
                                             <button class="btn-step" onclick="App.updateCount(${index}, 'cross', -1)">-</button>
-                                            <div class="count-val">${sub.cross}</div>
+                                            <div class="count-val">${sub.cross || 0}</div>
                                             <button class="btn-step" onclick="App.updateCount(${index}, 'cross', 1)">+</button>
                                         </div>
                                     </div>
@@ -889,11 +904,16 @@
                     }
                 }
 
-                let activeProgressVol = sub.isCompletedToday && sub.history ? (sub.history.completedVol || 0) : (sub.completedVol || 0);
-                const overallTotal = totalLaps * sub.totalVol;
-                const overallCompleted = ((currentLap - 1) * sub.totalVol) + activeProgressVol;
+                let totalVol = sub.totalVol || 1;
+                const overallTotal = totalLaps * totalVol;
+                const overallCompleted = ((currentLap - 1) * totalVol) + activeCompletedVol;
                 const overallPct = Math.floor((overallCompleted / overallTotal) * 100);
-                const currentLapPct = Math.floor((activeProgressVol / sub.totalVol) * 100);
+                const currentLapPct = Math.floor((activeCompletedVol / totalVol) * 100);
+                
+                const targetDate = new Date(sub.targetDate);
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const diffDays = Math.max(0, Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24)));
 
                 progressContainer.innerHTML += `
                     <div class="card">
@@ -904,7 +924,7 @@
                         <div class="progress-box">
                             <div class="progress-header" style="color:var(--primary);"><span>${currentLap}周目の進捗</span><span>${currentLapPct}%</span></div>
                             <div class="progress-bg"><div class="progress-fill lap" style="width:${currentLapPct}%;"></div></div>
-                            <div style="text-align:right; font-size:0.75rem; color:var(--text-sub); margin-bottom:10px;">${activeProgressVol} / ${sub.totalVol} 完了</div>
+                            <div style="text-align:right; font-size:0.75rem; color:var(--text-sub); margin-bottom:10px;">${activeCompletedVol} / ${totalVol} 完了</div>
                             <div class="progress-header"><span>全体（${totalLaps}周）の進捗</span><span>${overallPct}%</span></div>
                             <div class="progress-bg" style="height:6px;"><div class="progress-fill" style="width:${overallPct}%;"></div></div>
                         </div>
@@ -966,7 +986,8 @@
                     subjects.forEach(sub => {
                         let statusIcon = sub.isCompletedToday ? "✅" : "✏️";
                         let activeProgressVol = sub.isCompletedToday && sub.history ? (sub.history.completedVol || 0) : (sub.completedVol || 0);
-                        const percent = Math.floor((((sub.currentLap || 1) - 1) * sub.totalVol + activeProgressVol) / ((sub.laps || 1) * sub.totalVol) * 100);
+                        let totalVol = sub.totalVol || 1;
+                        const percent = Math.floor((((sub.currentLap || 1) - 1) * totalVol + activeProgressVol) / ((sub.laps || 1) * totalVol) * 100);
                         
                         let stockTri = sub.tri || 0;
                         let stockCross = sub.cross || 0;
@@ -1019,7 +1040,8 @@
             for(let uid in db.subjects) {
                 db.subjects[uid].forEach(sub => {
                     if(!sub.isCompletedToday && sub.cycleDay >= 1 && sub.cycleDay <= 4) {
-                        sub.quota = this.calculateQuota(sub.totalVol, sub.completedVol, sub.targetDate, sub.laps || 1, sub.currentLap || 1);
+                        let totalVol = sub.totalVol || 1;
+                        sub.quota = this.calculateQuota(totalVol, sub.completedVol, sub.targetDate, sub.laps || 1, sub.currentLap || 1);
                     }
                     
                     sub.tri = 0;
