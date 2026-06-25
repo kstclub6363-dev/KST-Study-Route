@@ -3,8 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KST Study Route - Final Update</title>
+    <title>KST Study Route - Cloud Sync</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
+    
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
     <style>
         :root {
             --primary: #007AFF;
@@ -70,7 +74,7 @@
         .cycle-badge.review { background: #FFF3E0; color: #F57C00; }
         
         .task-detail { background: #F8F9FA; padding: 12px; border-radius: 12px; margin-bottom: 12px; font-size: 0.9rem; color: #444; display: flex; justify-content: space-between; align-items: center; }
-        .task-detail strong { font-size: 1.2rem; color: var(--primary); }
+        .task-detail strong { font-size: 1.1rem; color: var(--primary); }
 
         /* カウンターUI */
         .counter-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; background: #fff; border: 1px solid #E5E5EA; padding: 8px 12px; border-radius: 12px; }
@@ -114,13 +118,17 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; animation: fadeIn 0.3s; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* 読み込み中画面 */
+        #loading-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); display: flex; justify-content: center; align-items: center; z-index: 999; font-weight: bold; color: var(--primary); font-size: 1.2rem; }
     </style>
 </head>
 <body>
 
 <div class="app-container">
+    <div id="loading-screen">データを同期中...</div>
     
-    <div id="login-screen" class="login-overlay">
+    <div id="login-screen" class="login-overlay" style="display: none;">
         <div class="login-box">
             <h2>KST Study Route</h2>
             <div class="login-section">
@@ -143,52 +151,32 @@
     </header>
 
     <main class="main-content">
-        
         <div id="view-student" style="display: none;">
-            
             <div id="tab-today" class="tab-content active">
                 <div style="font-size: 0.9rem; margin-bottom: 12px; font-weight: 700;">
                     こんにちは、<span id="student-name-display" style="color:var(--primary);"></span> さん！
                 </div>
-                
                 <div class="guide-panel">
                     <h3>💡 KSTメソッド 学習の進め方</h3>
                     <ul>
-                        <li><strong>📝 ① 基本サイクル</strong>
-                            1〜4日目は新しい範囲を進め、5〜6日目は今週の弱点（△・×）の総復習をします。
-                        </li>
-                        <li><strong>🔥 ② 〇はスルー！△と×だけ解き直す</strong>
-                            1周目でできた問題（〇）はもうやらなくてOK！<br>
-                            ダメだった問題の数を記録したら、<b>印をつけた問題だけを、自力で解ける(○)ようになるまで何度でも解き直してください。</b>
-                        </li>
-                        <li><strong>😌 ③ 遅れたら「途中」で完了してOK！</strong>
-                            予定の範囲が終わらなくても、<b>「今日完璧にできたところまで」のページ数で完了してOK！</b><br>
-                            次の日はその続きから始まります。遅れた分のノルマはシステムが自動計算するから、焦らず「完璧にすること」と「サイクル」を守ろう！
-                        </li>
-                        <li><strong>👑 ④ 最低3周で「凄さ」を実感する！</strong>
-                            <span>1周目は自分の弱点と向き合うので一番時間がかかってしんどいです。<br>
-                            でも、1周目をクリアした後の2周目、3周目で<b>「一瞬で思い出せる！」という圧倒的な成長とこのシステムの凄さを実感</b>できます。まずは1周目を乗り越えよう！</span>
-                        </li>
+                        <li><strong>📝 ① 基本サイクル</strong>1〜4日目は新しい範囲を進め、5〜6日目は今週の弱点（△・×）の総復習をします。</li>
+                        <li><strong>🔥 ② 〇はスルー！△と×だけ解き直す</strong>1周目でできた問題（〇）はもうやらなくてOK！ダメだった問題の数を記録したら、<b>印をつけた問題だけを、自力で解ける(○)ようになるまで何度でも解き直してください。</b></li>
+                        <li><strong>😌 ③ 遅れたら「途中」で完了してOK！</strong>予定の範囲が終わらなくても、<b>「今日完璧にできたところまで」の番号で完了してOK！</b>次の日はその続きから始まります。遅れた分のノルマはシステムが自動計算するから、焦らず「完璧にすること」と「サイクル」を守ろう！</li>
+                        <li><strong>👑 ④ 最低3周で「凄さ」を実感する！</strong><span>1周目は自分の弱点と向き合うので一番時間がかかってしんどいです。でも、1周目をクリアした後の2周目、3周目で<b>「一瞬で思い出せる！」という圧倒的な成長とこのシステムの凄さを実感</b>できます。まずは1周目を乗り越えよう！</span></li>
                     </ul>
                 </div>
-                
                 <div id="student-subject-list"></div>
                 <button class="btn-add-subject" onclick="App.openSubjectModal('add')">＋ 新しい教材・テスト範囲を追加する</button>
             </div>
-
             <div id="tab-review" class="tab-content">
                 <div class="section-title"><span>🔄 全教科の弱点リスト</span></div>
-                <div style="font-size:0.85rem; color:var(--text-sub); margin-bottom:15px;">
-                    ※5日目・6日目の復習日に、ここにある問題を自力で解ける状態にします。
-                </div>
+                <div style="font-size:0.85rem; color:var(--text-sub); margin-bottom:15px;">※5日目・6日目の復習日に、ここにある問題を自力で解ける状態にします。</div>
                 <div id="review-list-container"></div>
             </div>
-
             <div id="tab-progress" class="tab-content">
                 <div class="section-title"><span>📊 全教科の進捗状況</span></div>
                 <div id="progress-list-container"></div>
             </div>
-
         </div>
 
         <div id="view-manager" style="display: none;">
@@ -205,32 +193,43 @@
             </button>
 
             <div id="manager-student-list"></div>
-            <button onclick="App.resetAllData()" style="width:100%; padding:10px; margin-top:30px; background:transparent; border:1px solid #FF3B30; border-radius:12px; color:#FF3B30; font-weight:bold; cursor:pointer;">🗑️ 全データを初期化する</button>
         </div>
     </main>
 
     <div class="modal" id="modal-subject">
         <div class="modal-content">
             <h3 id="modal-sub-title" style="margin-bottom:15px; color:var(--primary);">教材の設定</h3>
-            <p style="font-size:0.8rem; color:var(--text-sub); margin-bottom:15px;">周回数と目標日から逆算して、1日のペースを自動調整します。</p>
             <input type="hidden" id="edit-sub-index" value="">
-            <div class="form-group"><label>教材名 / テスト範囲</label><input type="text" id="sub-title" placeholder="例: 英語ワーク"></div>
-            
+            <div class="form-group"><label>教材名 / テスト範囲</label><input type="text" id="sub-title" placeholder="例: 基礎問題精講 数学"></div>
             <div style="display:flex; gap:10px;">
-                <div class="form-group" style="flex:1"><label>総ページ・問数</label><input type="number" id="sub-total" placeholder="例: 80"></div>
+                <div class="form-group" style="flex:1">
+                    <label>単位</label>
+                    <select id="sub-unit">
+                        <option value="page">ページ (P〇)</option>
+                        <option value="question">問 (問〇)</option>
+                        <option value="chapter">章 (第〇章)</option>
+                        <option value="none">単位なし (数字のみ)</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display:flex; gap:10px; align-items: center;">
+                <div class="form-group" style="flex:1"><label>開始番号</label><input type="number" id="sub-start" placeholder="例: 1"></div>
+                <span style="font-weight:bold; padding-top:15px;">〜</span>
+                <div class="form-group" style="flex:1"><label>終了番号</label><input type="number" id="sub-end" placeholder="例: 100"></div>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <div class="form-group" style="flex:1"><label>完了目標日</label><input type="date" id="sub-date"></div>
                 <div class="form-group" style="flex:1">
                     <label>目標周回数</label>
                     <select id="sub-laps">
                         <option value="1">1周</option>
-                        <option value="2" selected>2周</option>
-                        <option value="3">3周</option>
+                        <option value="2">2周</option>
+                        <option value="3" selected>3周</option>
                         <option value="4">4周</option>
                         <option value="5">5周</option>
                     </select>
                 </div>
             </div>
-            <div class="form-group"><label>完了目標日</label><input type="date" id="sub-date"></div>
-
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="App.closeSubjectModal()">キャンセル</button>
                 <button class="btn-submit" onclick="App.saveSubject()">保存する</button>
@@ -247,12 +246,48 @@
 </div>
 
 <script>
-    const ADMIN_PASS = "admin999";
+    // ==========================================
+    // Firebaseの設定（いただいたコードを組み込んでいます！）
+    // ==========================================
+    const firebaseConfig = {
+        apiKey: "AIzaSyDkrj4-YZm8k8OYCiHQ9hXximSi_G0z_ZI",
+        authDomain: "kst-app-4d83e.firebaseapp.com",
+        databaseURL: "https://kst-app-4d83e-default-rtdb.firebaseio.com",
+        projectId: "kst-app-4d83e",
+        storageBucket: "kst-app-4d83e.firebasestorage.app",
+        messagingSenderId: "1044371592953",
+        appId: "1:1044371592953:web:3c78f674ff753f83197428"
+    };
 
-    // データベース (v18)
-    let db = JSON.parse(localStorage.getItem('kst_v18_data'));
-    if (!db) { db = { users: {}, subjects: {} }; }
-    let currentUser = localStorage.getItem('kst_v18_user');
+    // Firebaseの初期化
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    
+    const ADMIN_PASS = "admin999";
+    
+    // アプリの状態
+    let db = { users: {}, subjects: {} };
+    // ログイン状態はローカルストレージで保持
+    let currentUser = localStorage.getItem('kst_cloud_user');
+    let isInitialized = false;
+
+    // 🌟 リアルタイム同期（Firebaseからデータを受け取る）
+    database.ref('kst_app_data').on('value', (snapshot) => {
+        document.getElementById('loading-screen').style.display = 'none';
+        
+        if (snapshot.exists()) {
+            db = snapshot.val();
+            if (!db.users) db.users = {};
+            if (!db.subjects) db.subjects = {};
+        }
+
+        if (!isInitialized) {
+            App.init(); // 初回起動
+            isInitialized = true;
+        } else {
+            App.refreshUI(); // データ更新時の再描画
+        }
+    });
 
     const App = {
         init: function() {
@@ -262,9 +297,19 @@
             else this.renderStudentUI();
         },
 
+        // 🌟 データをFirebaseに書き込む
         saveDB: function() {
-            localStorage.setItem('kst_v18_data', JSON.stringify(db));
-            localStorage.setItem('kst_v18_user', currentUser);
+            database.ref('kst_app_data').set(db);
+            localStorage.setItem('kst_cloud_user', currentUser);
+        },
+
+        refreshUI: function() {
+            this.renderLoginDropdown();
+            if (currentUser === 'manager') {
+                this.renderManagerUI();
+            } else if (currentUser) {
+                this.renderStudentUI();
+            }
         },
 
         renderLoginDropdown: function() {
@@ -327,7 +372,9 @@
                 document.getElementById('modal-sub-title').innerText = "新しい教材を登録";
                 document.getElementById('edit-sub-index').value = "";
                 document.getElementById('sub-title').value = "";
-                document.getElementById('sub-total').value = "";
+                document.getElementById('sub-unit').value = "page";
+                document.getElementById('sub-start').value = "";
+                document.getElementById('sub-end').value = "";
                 document.getElementById('sub-laps').value = "3";
                 document.getElementById('sub-date').value = "";
                 document.getElementById('btn-delete-sub').style.display = 'none';
@@ -336,7 +383,9 @@
                 document.getElementById('edit-sub-index').value = index;
                 const sub = db.subjects[currentUser][index];
                 document.getElementById('sub-title').value = sub.title;
-                document.getElementById('sub-total').value = sub.totalVol;
+                document.getElementById('sub-unit').value = sub.unit || 'page';
+                document.getElementById('sub-start').value = sub.startNum;
+                document.getElementById('sub-end').value = sub.endNum;
                 document.getElementById('sub-laps').value = sub.laps || 1;
                 document.getElementById('sub-date').value = sub.targetDate;
                 document.getElementById('btn-delete-sub').style.display = 'block';
@@ -344,7 +393,6 @@
         },
         closeSubjectModal: function() { document.getElementById('modal-subject').classList.remove('active'); },
 
-        // 周回ペース自動調整ロジック
         calculateQuota: function(totalVol, completedVol, targetDateStr, totalLaps, currentLap) {
             const targetDate = new Date(targetDateStr);
             const today = new Date();
@@ -370,32 +418,40 @@
 
         saveSubject: function() {
             const title = document.getElementById('sub-title').value;
-            const total = parseInt(document.getElementById('sub-total').value);
+            const unit = document.getElementById('sub-unit').value;
+            const startNum = parseInt(document.getElementById('sub-start').value);
+            const endNum = parseInt(document.getElementById('sub-end').value);
             const laps = parseInt(document.getElementById('sub-laps').value);
             const dateStr = document.getElementById('sub-date').value;
             const editIndex = document.getElementById('edit-sub-index').value;
 
-            if(!title || !total || !dateStr) return alert('全ての項目を入力してください。');
+            if(!title || isNaN(startNum) || isNaN(endNum) || !dateStr) return alert('全ての項目を正しく入力してください。');
+            if(startNum > endNum) return alert('開始番号は終了番号より小さくしてください。');
+            
+            const total = endNum - startNum + 1;
             if(!db.subjects[currentUser]) db.subjects[currentUser] = [];
 
             if (editIndex === "") {
                 const quota = this.calculateQuota(total, 0, dateStr, laps, 1);
                 db.subjects[currentUser].push({
-                    title: title, totalVol: total, targetDate: dateStr, laps: laps, currentLap: 1, quota: quota,
+                    title: title, unit: unit, startNum: startNum, endNum: endNum, totalVol: total, targetDate: dateStr, laps: laps, currentLap: 1, quota: quota,
                     completedVol: 0, cycleDay: 1, tri: 0, cross: 0, isCompletedToday: false, history: null, step: 1
                 });
             } else {
                 const sub = db.subjects[currentUser][editIndex];
                 sub.title = title;
+                sub.unit = unit;
+                sub.startNum = startNum;
+                sub.endNum = endNum;
                 sub.totalVol = total;
                 sub.targetDate = dateStr;
                 sub.laps = laps;
+                if(sub.completedVol > total) sub.completedVol = total;
                 sub.quota = this.calculateQuota(total, sub.completedVol, dateStr, sub.laps, sub.currentLap || 1);
             }
 
             this.saveDB();
             this.closeSubjectModal();
-            this.renderStudentUI();
         },
 
         deleteSubject: function() {
@@ -404,19 +460,16 @@
                 db.subjects[currentUser].splice(editIndex, 1);
                 this.saveDB();
                 this.closeSubjectModal();
-                this.renderStudentUI();
             }
         },
 
         goToStep2: function(subIndex) {
             db.subjects[currentUser][subIndex].step = 2;
             this.saveDB();
-            this.renderStudentUI();
         },
         backToStep1: function(subIndex) {
             db.subjects[currentUser][subIndex].step = 1;
             this.saveDB();
-            this.renderStudentUI();
         },
         updateCount: function(subIndex, type, change) {
             let sub = db.subjects[currentUser][subIndex];
@@ -424,10 +477,21 @@
             sub[type] += change;
             if(sub[type] < 0) sub[type] = 0;
             this.saveDB();
-            this.renderStudentUI(); 
         },
 
-        // --- 途中保存対応の完了処理 ---
+        formatUnitLabel: function(num, unitType) {
+            if (unitType === 'page') return `P${num}`;
+            if (unitType === 'question') return `問${num}`;
+            if (unitType === 'chapter') return `第${num}章`;
+            return `${num}`;
+        },
+        getUnitName: function(unitType) {
+            if (unitType === 'page') return `ページ`;
+            if (unitType === 'question') return `問題番号`;
+            if (unitType === 'chapter') return `章番号`;
+            return `番号`;
+        },
+
         completeSubject: function(subIndex) {
             let sub = db.subjects[currentUser][subIndex];
             if(sub.isCompletedToday) return;
@@ -435,15 +499,18 @@
             let isAdvance = (sub.cycleDay >= 1 && sub.cycleDay <= 4);
             
             if (isAdvance) {
-                let defaultEnd = Math.min(sub.completedVol + sub.quota, sub.totalVol);
-                let msg = `【最終確認】\n印をつけた問題以外は、すべて自力で解ける(○)状態になりましたか？\n\n今日完璧にした最後のページ（または問題番号）を入力してください。\n（※時間がなくて途中で終わった場合は、その数字を入れてください）`;
+                let currentStart = sub.startNum + sub.completedVol;
+                let defaultEnd = Math.min(currentStart + sub.quota - 1, sub.endNum);
+                let unitName = this.getUnitName(sub.unit);
+                
+                let msg = `【最終確認】\n印をつけた問題以外は、すべて自力で解ける(○)状態になりましたか？\n\n今日完璧にした最後の「${unitName}」を数字で入力してください。\n（※途中で終わった場合は、その数字を入れてください）`;
                 
                 let input = prompt(msg, defaultEnd);
-                if (input === null) return; // キャンセル
+                if (input === null) return; 
                 
-                let newVol = parseInt(input);
-                if (isNaN(newVol) || newVol < sub.completedVol || newVol > sub.totalVol) {
-                    alert("正しい数値を入力してください。");
+                let newEndNum = parseInt(input);
+                if (isNaN(newEndNum) || newEndNum < (currentStart - 1) || newEndNum > sub.endNum) {
+                    alert(`正しい数値を入力してください。（${currentStart} 〜 ${sub.endNum}の範囲）`);
                     return;
                 }
                 
@@ -453,7 +520,7 @@
                 };
                 
                 sub.isCompletedToday = true;
-                sub.completedVol = newVol; // 途中で終わったページを記録
+                sub.completedVol = Math.max(sub.completedVol, newEndNum - sub.startNum + 1);
                 
                 if(sub.completedVol >= sub.totalVol) {
                     sub.completedVol = sub.totalVol;
@@ -466,7 +533,6 @@
                     }
                 }
                 this.saveDB();
-                this.renderStudentUI();
 
             } else {
                 let msg = `【最終確認】\n復習対象の問題はすべて完璧(○)になりましたか？\n(はいを押すとストックがリセットされます)`;
@@ -479,7 +545,6 @@
                     sub.tri = 0;
                     sub.cross = 0;
                     this.saveDB();
-                    this.renderStudentUI();
                 }
             }
         },
@@ -487,7 +552,7 @@
         undoComplete: function(subIndex) {
             let sub = db.subjects[currentUser][subIndex];
             if(!sub.isCompletedToday) return;
-            if(confirm("完了を取り消して、解き直しの状態に戻しますか？")) {
+            if(confirm("完了を取り消して、入力できる状態に戻しますか？")) {
                 sub.isCompletedToday = false;
                 if(sub.history) {
                     sub.completedVol = sub.history.completedVol;
@@ -498,7 +563,6 @@
                     sub.quota = sub.history.quota;
                 }
                 this.saveDB();
-                this.renderStudentUI();
             }
         },
 
@@ -539,12 +603,15 @@
 
                 let taskHtml = '';
                 if(isAdvance) {
-                    const startP = sub.completedVol + 1;
-                    const endP = Math.min(sub.completedVol + sub.quota, sub.totalVol);
+                    const startNum = sub.startNum + sub.completedVol;
+                    const endNum = Math.min(startNum + sub.quota - 1, sub.endNum);
                     const step = sub.step || 1;
 
+                    const displayStart = this.formatUnitLabel(startNum, sub.unit);
+                    const displayEnd = this.formatUnitLabel(endNum, sub.unit);
+
                     taskHtml = `
-                        <div class="task-detail"><span>今日の範囲</span> <strong>P${startP} 〜 P${endP}</strong></div>
+                        <div class="task-detail"><span>今日の範囲</span> <strong>${displayStart} 〜 ${displayEnd}</strong></div>
                         
                         <div style="display: ${step === 1 ? 'block' : 'none'};">
                             <div style="font-size: 0.8rem; color: #1976D2; font-weight: bold; margin-bottom: 10px; background: #E3F2FD; padding: 10px; border-radius: 8px; text-align: center;">
@@ -650,7 +717,7 @@
                             <div class="progress-header"><span>全体進捗率</span><span>${pct}%</span></div>
                             <div class="progress-bg"><div class="progress-fill" style="width:${pct}%;"></div></div>
                             <div style="text-align:right; font-size:0.8rem; color:var(--text-sub); margin-top:5px;">
-                                現在の周: ${sub.completedVol} / ${sub.totalVol} ページ
+                                現在の周: ${sub.completedVol} / ${sub.totalVol} 完了
                             </div>
                         </div>
                     </div>
@@ -724,7 +791,6 @@
                                     <span style="font-size:0.7rem; font-weight:normal; color:#666;">(${currentLap}/${totalLaps}周)</span>
                                 </div>
                                 <div style="display:flex; gap:10px;">
-                                    <span>ノルマ:${sub.quota}</span>
                                     <span style="color:var(--danger);">弱点:${sub.tri + sub.cross}</span>
                                     <span style="color:#666;">${percent}%</span>
                                 </div>
@@ -751,13 +817,11 @@
             }
         },
 
-        // --- 毎日必ず最新の進捗に合わせて再計算する ---
         advanceSystemDay: function() {
-            if(confirm("日付を進めますか？\n（毎日の進捗に合わせて、各生徒のノルマが最新の状態に自動再計算されます）")) {
+            if(confirm("日付を進めますか？\n（未完了の教材は、自動的にノルマが再計算・増加されます）")) {
                 for(let uid in db.subjects) {
                     db.subjects[uid].forEach(sub => {
-                        // 進行日なら常に最新のcompletedVolから次回ノルマを再計算
-                        if(sub.cycleDay >= 1 && sub.cycleDay <= 4) {
+                        if(!sub.isCompletedToday && sub.cycleDay >= 1 && sub.cycleDay <= 4) {
                             sub.quota = this.calculateQuota(sub.totalVol, sub.completedVol, sub.targetDate, sub.laps || 1, sub.currentLap || 1);
                         }
                         sub.isCompletedToday = false;
@@ -767,21 +831,13 @@
                     });
                 }
                 this.saveDB();
-                this.renderManagerUI();
-                alert("翌日になりました！\n生徒のノルマが最新の状況に合わせて自動計算されました。");
-            }
-        },
-
-        resetAllData: function() {
-            if(confirm("【警告】すべてのアカウントと進捗データを完全に消去しますか？")) {
-                localStorage.removeItem('kst_v18_data');
-                localStorage.removeItem('kst_v18_user');
-                location.reload();
             }
         }
     };
 
-    document.addEventListener('DOMContentLoaded', () => { App.init(); });
+    document.addEventListener('DOMContentLoaded', () => { 
+        // ⚠️ セキュリティルールも忘れずに設定してくださいね！
+    });
 </script>
 </body>
 </html>
