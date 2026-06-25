@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KST Study Route - Perfect Stock Version</title>
+    <title>KST Study Route - UI Master</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
     
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -53,9 +53,14 @@
         .main-content { flex: 1; overflow-y: auto; padding: 20px; }
         .section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end; color: #1c1c1e; }
         
+        /* 🌟 折りたたみ式ガイドパネル */
         .guide-panel { background: #E8F4FD; border-radius: 16px; padding: 16px; margin-bottom: 20px; border: 2px solid #BBDEFB; }
-        .guide-panel h3 { color: #1976D2; font-size: 1rem; margin-bottom: 8px; font-weight: 700; }
-        .guide-panel ul { padding-left: 0; font-size: 0.8rem; color: #444; line-height: 1.6; list-style-type: none; }
+        .guide-panel summary { color: #1976D2; font-size: 0.95rem; font-weight: 700; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; outline: none; }
+        .guide-panel summary::-webkit-details-marker { display: none; }
+        .guide-panel summary::after { content: '▼'; font-size: 0.8rem; transition: transform 0.3s; }
+        .guide-panel[open] summary::after { transform: rotate(180deg); }
+        .guide-panel[open] summary { margin-bottom: 12px; border-bottom: 1px dashed #BBDEFB; padding-bottom: 10px; }
+        .guide-panel ul { padding-left: 0; font-size: 0.8rem; color: #444; line-height: 1.6; list-style-type: none; margin-top: 10px;}
         .guide-panel li { margin-bottom: 10px; background: #FFF; padding: 12px; border-radius: 8px; border: 1px solid #E3F2FD;}
         .guide-panel li strong { color: var(--primary); display: block; margin-bottom: 4px; font-size: 0.85rem;}
         .guide-panel li span { display: block; color: #D32F2F; font-weight: bold; margin-top: 6px; font-size: 0.75rem; background: #FFEBEE; padding: 6px; border-radius: 6px;}
@@ -89,7 +94,7 @@
         .btn-complete.disabled { background: #D1D1D6; box-shadow: none; cursor: not-allowed; }
         .btn-next-step { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,122,255,0.2); margin-top: 10px; }
         .btn-undo { width: 100%; padding: 12px; background: transparent; border: 1.5px solid #8E8E93; color: #8E8E93; border-radius: 12px; font-weight: 700; font-size: 0.9rem; cursor: pointer; margin-top: 10px; }
-        .btn-add-subject { width: 100%; padding: 16px; background: #fff; border: 2px dashed var(--primary); color: var(--primary); border-radius: 16px; font-weight: 700; font-size: 1rem; cursor: pointer; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
+        .btn-add-subject { width: 100%; padding: 14px; background: #fff; border: 2px dashed var(--primary); color: var(--primary); border-radius: 12px; font-weight: 700; font-size: 0.95rem; cursor: pointer; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
 
         /* 進捗バー */
         .progress-box { background: #F8F9FA; padding: 12px; border-radius: 12px; margin-top: 10px; }
@@ -108,6 +113,17 @@
         .cycle-dot.review.active::before { background: #F57C00; box-shadow: 0 0 5px rgba(245,124,0,0.5); }
         .cycle-dot.test.active { color: #7B1FA2; }
         .cycle-dot.test.active::before { background: #7B1FA2; box-shadow: 0 0 5px rgba(123,31,162,0.5); }
+
+        /* モーダル */
+        .modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 50; padding: 20px; backdrop-filter: blur(3px); }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--card-bg); width: 100%; border-radius: 20px; padding: 24px; max-height: 90vh; overflow-y: auto; }
+        .modal-actions { display: flex; gap: 12px; margin-top: 20px; }
+        .btn-cancel, .btn-submit { flex: 1; padding: 14px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; }
+        .btn-cancel { background: #F2F2F7; color: var(--text-main); }
+        .btn-submit { background: var(--primary); color: white; }
+        .btn-delete { background: #FFEBEE; color: #D32F2F; width: 100%; padding: 12px; border: none; border-radius: 12px; font-weight: bold; margin-top: 15px; cursor: pointer; }
+        .btn-delete-student { background: transparent; border: 1px solid #FF3B30; color: #FF3B30; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
 
         /* ボトムナビ */
         .bottom-nav { width: 100%; background: #fff; border-top: 1px solid #E5E5EA; display: flex; justify-content: space-around; padding: 12px 0 20px 0; z-index: 10; flex-shrink: 0; margin-top: auto; }
@@ -157,21 +173,22 @@
     <main class="main-content">
         <div id="view-student" style="display: none;">
             <div id="tab-today" class="tab-content active">
-                <div style="font-size: 0.9rem; margin-bottom: 12px; font-weight: 700;">
-                    こんにちは、<span id="student-name-display" style="color:var(--primary);"></span> さん！
+                <div style="font-size: 0.9rem; margin-bottom: 12px; font-weight: 700; display:flex; justify-content:space-between; align-items:center;">
+                    <span>こんにちは、<span id="student-name-display" style="color:var(--primary);"></span> さん！</span>
                 </div>
-                <div class="guide-panel">
-                    <h3>💡 KSTメソッド 学習の進め方</h3>
+                
+                <details class="guide-panel">
+                    <summary>💡 KSTメソッド 学習の進め方 (タップで確認)</summary>
                     <ul>
                         <li><strong>📝 ① 基本サイクル</strong>1〜4日目は新しい範囲を進め、5〜6日目は今週の弱点（△・×）の総復習。7日目は確認テスト！</li>
                         <li><strong>🔥 ② 〇はスルー！△と×だけ解き直す</strong>1周目でできた問題（〇）はもうやらなくてOK！ダメだった問題の数を記録したら、<b>印をつけた問題だけを、自力で解ける(○)ようになるまで何度でも解き直してください。</b></li>
                         <li><strong>😌 ③ 遅れたら「途中」で完了してOK！</strong>予定の範囲が終わらなくても、<b>「今日完璧にできたところまで」の番号で完了してOK！</b>次の日はその続きから始まります。遅れた分のノルマはシステムが自動計算するから、焦らず「完璧にすること」と「サイクル」を守ろう！</li>
                         <li><strong>👑 ④ 最低3周で「凄さ」を実感する！</strong><span>1周目は自分の弱点と向き合うので一番時間がかかってしんどいです。でも、1周目をクリアした後の2周目、3周目で<b>「一瞬で思い出せる！」という圧倒的な成長とこのシステムの凄さを実感</b>できます。まずは1周目を乗り越えよう！</span></li>
                     </ul>
-                </div>
+                </details>
                 
                 <button class="btn-add-subject" onclick="App.openSubjectModal('add')">
-                    <span style="font-size: 1.4rem;">＋</span> 新しい教材を追加する
+                    <span style="font-size: 1.2rem;">＋</span> 新しい教材を追加する
                 </button>
 
                 <div id="student-subject-list"></div>
@@ -279,7 +296,7 @@
     let currentUser = localStorage.getItem('kst_cloud_user');
     let isInitialized = false;
 
-    // 🌟 リアルタイム同期 (v26 - 日別ストック完全刷新版)
+    // 🌟 データベースの参照先は v26 のままでOK（データ引き継ぎ）
     database.ref('kst_app_data_v26').on('value', (snapshot) => {
         document.getElementById('loading-screen').style.display = 'none';
         
@@ -554,7 +571,6 @@
                     return;
                 }
                 
-                // 🌟 Undo（取り消し）用に、現在のストック配列もディープコピーして退避
                 sub.history = { 
                     completedVol: sub.completedVol, tri: sub.tri, cross: sub.cross, 
                     step: sub.step || 1, currentLap: sub.currentLap || 1, quota: sub.quota, 
@@ -567,9 +583,7 @@
                 sub.lastCompletedWeekGoalText = weekStartLabel + " 〜 " + weekEndLabel;
                 sub.completedAt = this.getNowTimeString();
                 
-                // 🌟【新ロジック】その日のバツ数を「日別ストック（weakStock）」に保存！
                 if (!sub.weakStock) sub.weakStock = [];
-                // 同じ日の上書き対策
                 let existingIdx = sub.weakStock.findIndex(w => w.cycleDay === sub.cycleDay);
                 let stockItem = {
                     cycleDay: sub.cycleDay,
@@ -627,8 +641,9 @@
                     sub.lastCompletedWeekGoalText = "弱点ストックの解消";
                     sub.completedAt = this.getNowTimeString();
                     sub.isCompletedToday = true;
-                    
-                    // 🌟 完璧に復習を終えたので、今週のストックをすべてクリア！
+                    sub.tri = 0;
+                    sub.cross = 0;
+                    sub.weakNotes = ""; 
                     sub.weakStock = []; 
                     this.saveDB();
                 }
@@ -652,7 +667,6 @@
                     sub.quota = sub.history.quota;
                     sub.completedAt = sub.history.completedAt || "";
                     if(sub.history.weakNotes !== undefined) sub.weakNotes = sub.history.weakNotes;
-                    // ストックもUndoで復活させる
                     if(sub.history.weakStock) sub.weakStock = sub.history.weakStock;
                 }
                 this.saveDB();
@@ -700,7 +714,6 @@
 
                 let activeCompletedVol = sub.isCompletedToday && sub.history ? (sub.history.completedVol || 0) : (sub.completedVol || 0);
 
-                // 7日間サイクルマップの生成
                 let mapHtml = `<div class="cycle-map">`;
                 for(let i=1; i<=7; i++) {
                     let dotClass = "cycle-dot";
@@ -712,7 +725,6 @@
                 }
                 mapHtml += `</div>`;
 
-                // 🌟【新ロジック】今週蓄積された弱点（ストック）のHTMLを生成
                 let stockHtml = "";
                 let subHasStock = false;
                 if (sub.weakStock && sub.weakStock.length > 0) {
@@ -813,7 +825,6 @@
                             </div>
                         `;
                     } else {
-                        // 🌟 復習日(Day5,6)のカード表示：ストックされた日別リストが自動表示される！
                         taskHtml = `
                             ${mapHtml}
                             <div style="margin-top:15px;">
@@ -844,7 +855,6 @@
                     </div>
                 `;
 
-                // 🌟「復習タブ」用の日別ストックをスキャン・出力
                 if(sub.weakStock && sub.weakStock.length > 0) {
                     let hasItemsInTab = false;
                     let innerTabHtml = `<div class="card" style="border-left: 4px solid var(--warning);"><h4 style="color:var(--text-main); margin-bottom:10px;">${sub.title}</h4>`;
@@ -865,7 +875,6 @@
                     }
                 }
 
-                // 進捗計算
                 let activeProgressVol = sub.isCompletedToday && sub.history ? (sub.history.completedVol || 0) : (sub.completedVol || 0);
                 const overallTotal = totalLaps * sub.totalVol;
                 const overallCompleted = ((currentLap - 1) * sub.totalVol) + activeProgressVol;
@@ -876,6 +885,7 @@
                     <div class="card">
                         <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                             <h4 style="color:var(--text-main); font-size:1rem;">${sub.title} ${lapBadge}</h4>
+                            <span style="font-size:0.8rem; color:var(--primary); font-weight:bold;">試験まで ${diffDays} 日</span>
                         </div>
                         <div class="progress-box">
                             <div class="progress-header" style="color:var(--primary);"><span>${currentLap}周目の進捗</span><span>${currentLapPct}%</span></div>
@@ -942,7 +952,6 @@
                         let activeProgressVol = sub.isCompletedToday && sub.history ? (sub.history.completedVol || 0) : (sub.completedVol || 0);
                         const percent = Math.floor((((sub.currentLap || 1) - 1) * sub.totalVol + activeProgressVol) / ((sub.laps || 1) * sub.totalVol) * 100);
                         
-                        // 🌟【新ロジック】今週蓄積されている総弱点数を集計して先生画面に出す
                         let stockTri = sub.tri || 0;
                         let stockCross = sub.cross || 0;
                         if(sub.weakStock) {
@@ -997,7 +1006,6 @@
                         sub.quota = this.calculateQuota(sub.totalVol, sub.completedVol, sub.targetDate, sub.laps || 1, sub.currentLap || 1);
                     }
                     
-                    // 🌟【最重要バグ修正】日付を進めるタイミングで、当日の入力用カウンターを綺麗にリセット！
                     sub.tri = 0;
                     sub.cross = 0;
                     sub.weakNotes = "";
@@ -1010,20 +1018,12 @@
                     sub.cycleDay += 1;
                     if(sub.cycleDay > 7) {
                         sub.cycleDay = 1;
-                        sub.weakStock = []; // 7日間の全サイクルが終わったら来週のために全リセット
+                        sub.weakStock = []; 
                     }
                 });
             }
             db.lastAdvancedDate = todayStr;
             this.saveDB();
-        },
-
-        resetAllData: function() {
-            if(confirm("【警告】すべてのデータを完全に消去しますか？")) {
-                database.ref('kst_app_data_v26').remove();
-                localStorage.removeItem('kst_cloud_user');
-                location.reload();
-            }
         }
     };
 
