@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KST Study Route - Sync & Memo</title>
+    <title>KST Study Route - Final</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
     
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -166,13 +166,11 @@
                 <div id="student-subject-list"></div>
                 <button class="btn-add-subject" onclick="App.openSubjectModal('add')">＋ 新しい教材・テスト範囲を追加する</button>
             </div>
-
             <div id="tab-review" class="tab-content">
                 <div class="section-title"><span>🔄 全教科の弱点リスト</span></div>
                 <div style="font-size:0.85rem; color:var(--text-sub); margin-bottom:15px;">※5日目・6日目の復習日に、ここにある問題を自力で解ける状態にします。</div>
                 <div id="review-list-container"></div>
             </div>
-
             <div id="tab-progress" class="tab-content">
                 <div class="section-title"><span>📊 全教科の進捗状況</span></div>
                 <div id="progress-list-container"></div>
@@ -265,13 +263,12 @@
     
     const ADMIN_PASS = "admin999";
     
-    // アプリの状態
     let db = { users: {}, subjects: {} };
     let currentUser = localStorage.getItem('kst_cloud_user');
     let isInitialized = false;
 
     // 🌟 リアルタイム同期
-    database.ref('kst_app_data').on('value', (snapshot) => {
+    database.ref('kst_app_data_v22').on('value', (snapshot) => {
         document.getElementById('loading-screen').style.display = 'none';
         
         if (snapshot.exists()) {
@@ -281,10 +278,10 @@
         }
 
         if (!isInitialized) {
-            App.init(); // 初回起動
+            App.init(); 
             isInitialized = true;
         } else {
-            App.refreshUI(); // データ更新時の再描画
+            App.refreshUI(); 
         }
     });
 
@@ -297,7 +294,7 @@
         },
 
         saveDB: function() {
-            database.ref('kst_app_data').set(db);
+            database.ref('kst_app_data_v22').set(db);
             localStorage.setItem('kst_cloud_user', currentUser);
         },
 
@@ -503,8 +500,11 @@
 
             let isAdvance = (sub.cycleDay >= 1 && sub.cycleDay <= 4);
             
+            // 🔥 完了前のベースとなるボリュームを取得
+            let baseCompletedVol = sub.completedVol;
+
             if (isAdvance) {
-                let currentStart = sub.startNum + sub.completedVol;
+                let currentStart = sub.startNum + baseCompletedVol;
                 let defaultEnd = Math.min(currentStart + sub.quota - 1, sub.endNum);
                 let unitName = this.getUnitName(sub.unit);
                 
@@ -549,7 +549,7 @@
                     sub.isCompletedToday = true;
                     sub.tri = 0;
                     sub.cross = 0;
-                    sub.weakNotes = ""; // 完璧にしたらメモもクリア
+                    sub.weakNotes = ""; 
                     this.saveDB();
                 }
             }
@@ -608,17 +608,27 @@
                 const totalLaps = sub.laps || 1;
                 const lapBadge = `<span class="lap-badge">${currentLap}周目 / ${totalLaps}周</span>`;
 
+                // 🔥 完了済みでも「完了前のボリューム」を使って描画することで、表示がブレないようにする
+                let activeCompletedVol = sub.isCompletedToday && sub.history ? sub.history.completedVol : sub.completedVol;
+
                 let taskHtml = '';
                 if(isAdvance) {
-                    const startNum = sub.startNum + sub.completedVol;
-                    const endNum = Math.min(startNum + sub.quota - 1, sub.endNum);
+                    let startNum = sub.startNum + activeCompletedVol;
+                    let endNum;
+                    
+                    if (sub.isCompletedToday) {
+                        endNum = sub.startNum + sub.completedVol - 1; // 実際に完了したところまでを表示
+                        if (endNum < startNum) endNum = startNum; // 念のため
+                    } else {
+                        endNum = Math.min(startNum + sub.quota - 1, sub.endNum); // 予定を表示
+                    }
+                    
                     const step = sub.step || 1;
 
                     const displayStart = this.formatUnitLabel(startNum, sub.unit);
                     const displayEnd = this.formatUnitLabel(endNum, sub.unit);
                     
-                    // 今週の目標（サイクル開始時から4日分の目標）を計算して表示
-                    let cycleStartVol = Math.max(0, sub.completedVol - (cDay - 1) * sub.quota);
+                    let cycleStartVol = Math.max(0, activeCompletedVol - (cDay - 1) * sub.quota);
                     let cycleEndVol = cycleStartVol + (sub.quota * 4) - 1;
                     let weekStartLabel = this.formatUnitLabel(sub.startNum + cycleStartVol, sub.unit);
                     let weekEndLabel = this.formatUnitLabel(Math.min(sub.startNum + cycleEndVol, sub.endNum), sub.unit);
