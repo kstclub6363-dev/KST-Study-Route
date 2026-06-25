@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KST Study Route - Final</title>
+    <title>KST Study Route - Auto Pilot Version</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
     
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -60,7 +60,6 @@
         .guide-panel li strong { color: var(--primary); display: block; margin-bottom: 2px; font-size: 0.85rem;}
         .guide-panel li span { display: block; color: #D32F2F; font-weight: bold; margin-top: 4px; font-size: 0.75rem; background: #FFEBEE; padding: 4px 6px; border-radius: 4px;}
 
-        /* 🌟 先生からのメッセージバナー */
         .teacher-message { background: #fff; border-left: 5px solid var(--warning); padding: 16px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .teacher-message-title { font-weight: 700; color: var(--warning); font-size: 0.9rem; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
         .teacher-message-text { font-size: 0.9rem; color: #333; line-height: 1.6; white-space: pre-wrap; }
@@ -123,7 +122,6 @@
         .btn-cancel { background: #F2F2F7; color: var(--text-main); }
         .btn-submit { background: var(--primary); color: white; }
         .btn-delete { background: #FFEBEE; color: #D32F2F; width: 100%; padding: 12px; border: none; border-radius: 12px; font-weight: bold; margin-top: 15px; cursor: pointer; }
-        .btn-delete-student { background: transparent; border: 1px solid #FF3B30; color: #FF3B30; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
 
         /* ボトムナビ */
         .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: rgba(255,255,255,0.95); border-top: 1px solid #E5E5EA; display: flex; justify-content: space-around; padding: 12px 0 25px 0; z-index: 1000; backdrop-filter: blur(10px); }
@@ -210,7 +208,9 @@
                 <h3 style="margin-bottom: 12px; font-size:1.05rem;">👤 新規生徒アカウント発行</h3>
                 <div class="form-group"><input type="text" id="new-user-name" placeholder="生徒の名前"></div>
                 <div class="form-group"><input type="text" id="new-user-pass" placeholder="ログインパスワード"></div>
-                <button onclick="App.createStudentAccount()" style="width:100%; padding:12px; background:var(--primary); color:#fff; border:none; border-radius:12px; font-weight:bold;">アカウントを作成</button>
+                <div class="btn-group" style="display:flex; gap:10px;">
+                    <button onclick="App.createStudentAccount()" style="flex:1; padding:12px; background:var(--primary); color:#fff; border:none; border-radius:12px; font-weight:bold; cursor:pointer;">アカウントを作成</button>
+                </div>
             </div>
 
             <h3 style="margin:20px 0 10px 0; font-size:1.1rem;">📊 生徒進捗ダッシュボード</h3>
@@ -291,11 +291,10 @@
     
     const ADMIN_PASS = "admin999";
     
-    let db = { users: {}, subjects: {}, lastAdvancedDate: "" };
+    let db = { users: {}, subjects: {}, lastAdvancedDate: "", previousState: null, previousDate: "" };
     let currentUser = localStorage.getItem('kst_cloud_user');
     let isInitialized = false;
 
-    // データはv30のまま（データ消えずに引き継げます！）
     database.ref('kst_app_data_v30').on('value', (snapshot) => {
         document.getElementById('loading-screen').style.display = 'none';
         
@@ -304,6 +303,13 @@
             if (!db.users) db.users = {};
             if (!db.subjects) db.subjects = {};
             if (!db.lastAdvancedDate) db.lastAdvancedDate = "";
+            if (!db.previousState) db.previousState = null;
+            if (!db.previousDate) db.previousDate = "";
+        }
+
+        // 🌟【最重要機能】朝3時またぎの自動1日進行チェック
+        if (App.checkAutoAdvance()) {
+            return; // 自動進行が走った場合はFirebaseへの再書き込みが発生するため一旦ここで抜ける
         }
 
         if (!isInitialized) {
@@ -345,10 +351,61 @@
             document.getElementById('live-date-display').innerText = dateText;
         },
 
+        // 🌟 朝3時基準の日付文字列を取得するヘルパー
+        getKstAdjustedDateStr: function() {
+            const d = new Date();
+            // 3時間巻き戻すことで、朝3:00を日付の切り替わり目にする
+            // (例: 26日の深夜2時(-3時間) -> 25日の23時となり、25日扱いになる)
+            d.setHours(d.getHours() - 3);
+            return d.toLocaleDateString('ja-JP');
+        },
+
         getNowTimeString: function() {
             const d = new Date();
             const min = String(d.getMinutes()).padStart(2, '0');
             return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${min}`;
+        },
+
+        // 🌟 朝3時をすぎたか自動判定して、すぎたら全員のデータを自動進行させる
+        checkAutoAdvance: function() {
+            const adjustedToday = this.getKstAdjustedDateStr();
+            
+            // Firebase上の「前回の更新日」と「現在の朝3時基準の日付」が違っていたら自動実行
+            if (db.lastAdvancedDate && db.lastAdvancedDate !== adjustedToday) {
+                
+                // 進行処理の実行
+                for(let uid in db.users) {
+                    if(!db.subjects[uid]) db.subjects[uid] = [];
+                    db.subjects[uid].forEach(sub => {
+                        if(!sub.isCompletedToday && sub.cycleDay >= 1 && sub.cycleDay <= 4) {
+                            let totalVol = sub.totalVol || 1;
+                            sub.quota = this.calculateQuota(totalVol, sub.completedVol, sub.targetDate, sub.laps || 1, sub.currentLap || 1);
+                        }
+                        
+                        sub.tri = 0;
+                        sub.cross = 0;
+                        sub.weakNotes = "";
+                        sub.isCompletedToday = false;
+                        sub.step = 1; 
+                        sub.lastCompletedRangeText = null;
+                        sub.lastCompletedWeekGoalText = null;
+                        
+                        sub.cycleDay += 1;
+                        if(sub.cycleDay > 7) {
+                            sub.cycleDay = 1;
+                            sub.weakStock = []; 
+                        }
+                    });
+                }
+                
+                db.previousState = null; // 自動進行時は巻き戻し履歴をリセット
+                db.previousDate = "";
+                db.lastAdvancedDate = adjustedToday; // 日付を更新
+                
+                this.saveDB(); // クラウド保存
+                return true; 
+            }
+            return false;
         },
 
         renderLoginDropdown: function() {
@@ -439,29 +496,6 @@
         },
         closeSubjectModal: function() { document.getElementById('modal-subject').classList.remove('active'); },
 
-        calculateQuota: function(totalVol, completedVol, targetDateStr, totalLaps, currentLap) {
-            const targetDate = new Date(targetDateStr);
-            const today = new Date();
-            today.setHours(0,0,0,0);
-            const diffDays = Math.max(1, Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24)));
-            const realWorkDays = Math.max(1, Math.floor(diffDays * (4 / 7)));
-            
-            let remainingWeight = 0;
-            for (let i = currentLap; i <= totalLaps; i++) {
-                remainingWeight += (i === 1 && totalLaps > 1) ? 2 : 1;
-            }
-            if (totalLaps === 1) remainingWeight = 1;
-            
-            let currentWeight = (currentLap === 1 && totalLaps > 1) ? 2 : 1;
-            if (totalLaps === 1) currentWeight = 1;
-            
-            const lapDays = Math.max(1, Math.floor(realWorkDays * (currentWeight / remainingWeight)));
-            const remainingVol = Math.max(0, totalVol - completedVol);
-            
-            if(remainingVol === 0) return 0;
-            return Math.max(1, Math.ceil(remainingVol / lapDays));
-        },
-
         saveSubject: function() {
             const title = document.getElementById('sub-title').value;
             const unit = document.getElementById('sub-unit').value;
@@ -509,11 +543,9 @@
             }
         },
 
-        // 🌟 先生からのコメント保存機能
         saveTeacherComment: function(uid) {
             const commentArea = document.getElementById(`comment-${uid}`);
             if(!commentArea) return;
-            
             if (!db.users[uid]) return;
             db.users[uid].teacherComment = commentArea.value;
             this.saveDB();
@@ -540,20 +572,6 @@
         updateNotes: function(subIndex, value) {
             db.subjects[currentUser][subIndex].weakNotes = value;
             this.saveDB();
-        },
-
-        formatUnitLabel: function(num, unitType) {
-            if (isNaN(num)) return "-"; 
-            if (unitType === 'page') return `P${num}`;
-            if (unitType === 'question') return `問${num}`;
-            if (unitType === 'chapter') return `第${num}章`;
-            return `${num}`;
-        },
-        getUnitName: function(unitType) {
-            if (unitType === 'page') return `ページ`;
-            if (unitType === 'question') return `問題番号`;
-            if (unitType === 'chapter') return `章番号`;
-            return `番号`;
         },
 
         completeSubject: function(subIndex) {
@@ -674,38 +692,12 @@
             }
         },
 
-        undoComplete: function(subIndex) {
-            let sub = db.subjects[currentUser][subIndex];
-            if(!sub.isCompletedToday) return;
-            if(confirm("完了を取り消して、解き直しの状態に戻しますか？")) {
-                sub.isCompletedToday = false;
-                sub.lastCompletedRangeText = null;
-                sub.lastCompletedWeekGoalText = null;
-                
-                if(sub.history) {
-                    sub.completedVol = sub.history.completedVol;
-                    sub.tri = sub.history.tri;
-                    sub.cross = sub.history.cross;
-                    sub.step = sub.history.step || 1;
-                    sub.currentLap = sub.history.currentLap;
-                    sub.quota = sub.history.quota;
-                    sub.completedAt = sub.history.completedAt || "";
-                    if(sub.history.weakNotes !== undefined) sub.weakNotes = sub.history.weakNotes;
-                    if(sub.history.weakStock) sub.weakStock = sub.history.weakStock;
-                }
-                this.saveDB();
-            }
-        },
-
         renderStudentUI: function() {
             document.getElementById('main-header').classList.remove('manager-mode');
             document.getElementById('header-title').innerText = "KST Study Route";
             document.getElementById('view-student').style.display = 'block';
             document.getElementById('student-nav').style.display = 'flex';
 
-            document.getElementById('student-name-display').innerText = db.users[currentUser].name;
-
-            // 🌟 生徒画面：先生からのメッセージ表示エリア
             const messageArea = document.getElementById('student-message-area');
             const teacherMsg = db.users[currentUser].teacherComment;
             if (teacherMsg && teacherMsg.trim() !== "") {
@@ -730,19 +722,12 @@
             const subjects = db.subjects[currentUser] || [];
             if(subjects.length === 0) {
                 listContainer.innerHTML = '<p style="text-align:center; color:var(--text-sub); padding:40px 0; font-size:0.9rem;">まだ教材がありません。<br>右下の ＋ ボタンから追加してください。</p>';
-                reviewContainer.innerHTML = '<p style="text-align:center; color:var(--text-sub); padding:40px 0;">教材がありません。</p>';
-                progressContainer.innerHTML = '<p style="text-align:center; color:var(--text-sub); padding:40px 0;">教材がありません。</p>';
                 return;
             }
 
             let globalHasReview = false;
 
             subjects.forEach((sub, index) => {
-                let s_start = sub.startNum !== undefined ? sub.startNum : 1;
-                let s_end = sub.endNum !== undefined ? sub.endNum : (sub.totalVol || 1);
-                let s_unit = sub.unit || 'none';
-                let s_quota = sub.quota || 1;
-
                 const cDay = sub.cycleDay;
                 let isAdvance = (cDay >= 1 && cDay <= 4);
                 let isTest = (cDay === 7);
@@ -815,22 +800,22 @@
                     `;
                 } else {
                     if(isAdvance) {
-                        const startNum = s_start + activeCompletedVol;
-                        const endNum = Math.min(startNum + s_quota - 1, s_end);
+                        const startNum = sub.startNum + activeCompletedVol;
+                        const endNum = Math.min(startNum + sub.quota - 1, sub.endNum);
                         const step = sub.step || 1;
 
-                        const displayStart = this.formatUnitLabel(startNum, s_unit);
-                        const displayEnd = this.formatUnitLabel(endNum, s_unit);
+                        const displayStart = this.formatUnitLabel(startNum, sub.unit);
+                        const displayEnd = this.formatUnitLabel(endNum, sub.unit);
                         
-                        let cycleStartVol = Math.max(0, activeCompletedVol - (cDay - 1) * s_quota);
-                        let cycleEndVol = cycleStartVol + (s_quota * 4) - 1;
-                        let weekStartLabel = this.formatUnitLabel(s_start + cycleStartVol, s_unit);
-                        let weekEndLabel = this.formatUnitLabel(Math.min(s_start + cycleEndVol, s_end), s_unit);
+                        let cycleStartVol = Math.max(0, activeCompletedVol - (cDay - 1) * sub.quota);
+                        let cycleEndVol = cycleStartVol + (sub.quota * 4) - 1;
+                        let weekStartLabel = this.formatUnitLabel(sub.startNum + cycleStartVol, sub.unit);
+                        let weekEndLabel = this.formatUnitLabel(Math.min(sub.startNum + cycleEndVol, sub.endNum), sub.unit);
 
                         taskHtml = `
                             ${statusBannerHtml}
                             <div style="font-size: 0.75rem; color: #8E8E93; margin-bottom: 8px;">
-                                💡 今週(4日間)の目標: <strong>${weekStartLabel} 〜 ${weekEndLabel}</strong> (1日 ${s_quota}${this.getUnitName(s_unit)})
+                                💡 今週(4日間)の目標: <strong>${weekStartLabel} 〜 ${weekEndLabel}</strong> (1日 ${sub.quota}${this.getUnitName(sub.unit)})
                             </div>
                             <div class="task-detail" style="margin-bottom:4px;"><span>今日の範囲</span> <strong>${displayStart} 〜 ${displayEnd}</strong></div>
                             ${mapHtml}
@@ -988,11 +973,18 @@
 
             const todayStr = new Date().toLocaleDateString('ja-JP');
             const advanceArea = document.getElementById('manager-advance-area');
+            
+            let advanceHtml = '';
             if (db.lastAdvancedDate === todayStr) {
-                advanceArea.innerHTML = `<button onclick="App.advanceSystemDay()" style="width:100%; padding:12px; background:#F5F5F5; border:2px solid #E5E5EA; color:#999; border-radius:12px; font-weight:bold; cursor:pointer;">✅ 本日の日付更新は完了済みです</button>`;
+                advanceHtml = `<button onclick="App.advanceSystemDay()" style="width:100%; padding:12px; background:#F5F5F5; border:2px solid #E5E5EA; color:#999; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:8px;">✅ 本日の日付更新は完了済みです</button>`;
             } else {
-                advanceArea.innerHTML = `<button onclick="App.advanceSystemDay()" style="width:100%; padding:12px; background:#E8F4FD; border:2px solid #90CAF9; color:#1976D2; border-radius:12px; font-weight:bold; cursor:pointer;">⚠️⏭️ 日付を1日進める (遅れは自動再計算されます)</button>`;
+                advanceHtml = `<button onclick="App.advanceSystemDay()" style="width:100%; padding:12px; background:#E8F4FD; border:2px solid #90CAF9; color:#1976D2; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:8px;">⚠️⏭️ 日付を1日進める (遅れは自動再計算されます)</button>`;
             }
+            
+            if (db.previousState) {
+                advanceHtml += `<button onclick="App.undoAdvanceSystemDay()" style="width:100%; padding:8px; background:transparent; border:1px solid #8E8E93; color:#8E8E93; border-radius:8px; font-weight:bold; cursor:pointer; font-size: 0.85rem;">⏪ 間違えて進めた場合はここを押して1日戻す</button>`;
+            }
+            advanceArea.innerHTML = advanceHtml;
 
             const listContainer = document.getElementById('manager-student-list');
             listContainer.innerHTML = '';
@@ -1009,7 +1001,7 @@
                         let statusIcon = sub.isCompletedToday ? "✅" : "✏️";
                         let activeProgressVol = sub.isCompletedToday && sub.history ? (sub.history.completedVol || 0) : (sub.completedVol || 0);
                         let totalVol = sub.totalVol || 1;
-                        const percent = Math.floor((((sub.currentLap || 1) - 1) * totalVol + activeProgressVol) / ((sub.laps || 1) * totalVol) * 100);
+                        const percent = Math.floor((((sub.currentLap || 1) - 1) * totalVol + activeProgressVol) / (sub.laps * totalVol) * 100);
                         
                         let stockTri = sub.tri || 0;
                         let stockCross = sub.cross || 0;
@@ -1026,7 +1018,7 @@
                             <div style="margin-bottom:8px; background:#F8F9FA; padding:10px; border-radius:8px;">
                                 <div style="display:flex; justify-content:space-between; align-items:center;">
                                     <div style="font-weight:700; color:var(--manager); font-size:0.9rem;">
-                                        ${statusIcon} ${sub.title} <span style="font-size:0.7rem; font-weight:normal; color:#666;">(${sub.currentLap || 1}/${sub.laps || 1}周・Day${sub.cycleDay})</span>
+                                        ${statusIcon} ${sub.title} <span style="font-size:0.7rem; font-weight:normal; color:#666;">(${sub.currentLap}/${sub.laps}周・Day${sub.cycleDay})</span>
                                     </div>
                                     <div style="font-size:0.8rem; font-weight:bold;">
                                         <span style="color:var(--danger); margin-right:8px;">弱点ストック:${stockTri + stockCross}</span>
@@ -1039,7 +1031,6 @@
                     });
                 }
 
-                // 🌟 先生用のメッセージ入力UI
                 listContainer.innerHTML += `
                     <div class="card" style="border-left: 6px solid var(--manager);">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -1066,11 +1057,14 @@
                 if(!confirm("日付を進めますか？\n（未完了の教材は、自動的にノルマが再計算・増加されます）")) return;
             }
 
-            for(let uid in db.subjects) {
+            db.previousState = JSON.parse(JSON.stringify(db.subjects));
+            db.previousDate = db.lastAdvancedDate;
+
+            for(let uid in db.users) {
                 db.subjects[uid].forEach(sub => {
                     if(!sub.isCompletedToday && sub.cycleDay >= 1 && sub.cycleDay <= 4) {
                         let totalVol = sub.totalVol || 1;
-                        sub.quota = this.calculateQuota(totalVol, sub.completedVol, sub.targetDate, sub.laps || 1, sub.currentLap || 1);
+                        sub.quota = this.calculateQuota(totalVol, sub.completedVol, sub.targetDate, sub.laps, sub.currentLap);
                     }
                     
                     sub.tri = 0;
@@ -1092,6 +1086,22 @@
             db.lastAdvancedDate = todayStr;
             this.saveDB();
             this.refreshUI();
+        },
+
+        undoAdvanceSystemDay: function() {
+            if(!db.previousState) {
+                alert("戻せる履歴がありません。");
+                return;
+            }
+            if(confirm("日付を1日前に戻しますか？\n※昨日の状態に完全に巻き戻ります。")) {
+                db.subjects = db.previousState;
+                db.lastAdvancedDate = db.previousDate || "";
+                db.previousState = null; 
+                db.previousDate = "";
+                this.saveDB();
+                this.refreshUI();
+                alert("1日前の状態に復元しました。");
+            }
         },
 
         resetAllData: function() {
