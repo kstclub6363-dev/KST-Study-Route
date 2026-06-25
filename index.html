@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KST Study Route - Auto Pilot Fix</title>
+    <title>KST Study Route - Week Sync Version</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
     
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -180,9 +180,10 @@
                 <div class="guide-panel">
                     <h3>💡 KSTメソッドの絶対ルール</h3>
                     <ul>
-                        <li><strong>📝 ① 4日進み、2日復習、1日テスト</strong><br>このサイクルだけは絶対に守ること！遅れてもシステムが自動調整するので焦らない。</li>
-                        <li><strong>🔥 ② 〇はスルー！△と×だけ解き直す</strong><br>1周目でできた問題（〇）はもうやらない。ダメだった問題だけを、<b>自力で解ける(○)ようになるまで何度でも解き直す。</b></li>
-                        <li><strong>👑 ③ 最低3周で「無双状態」へ！</strong><br><span>1周目は弱点と向き合うので一番しんどい。でも2・3周目で「一瞬で思い出せる！」という圧倒的な成長を実感できる！</span></li>
+                        <li><strong>📝 ① 火〜金は新しい範囲を進める！</strong><br>遅れてもシステムが自動調整するので、1問ずつ「完璧にすること」に集中しよう。</li>
+                        <li><strong>🔥 ② 〇はスルー！△と×だけ解き直す</strong><br>1周目でできた問題はもうやらない。印をつけた問題だけを、<b>自力で解ける(○)ようになるまで何度でも解き直す。</b></li>
+                        <li><strong>🔄 ③ 土日は今週の弱点を総復習！</strong><br>火〜金で間違えたストックが日別に並ぶので、もう一度すべて解き直して完璧にしよう！</li>
+                        <li><strong>📝 ④ 月曜日は「確認テスト・調整日」</strong><br>塾や自宅で今週の総仕上げテストをしよう！火曜日から新しい週の範囲が始まります。</li>
                     </ul>
                 </div>
                 
@@ -192,7 +193,7 @@
             
             <div id="tab-review" class="tab-content">
                 <div class="section-title"><span>🔄 全教科の弱点リスト</span></div>
-                <div style="font-size:0.85rem; color:var(--text-sub); margin-bottom:15px;">※今週の「進行日」に記録された△・×のストックリストです。</div>
+                <div style="font-size:0.85rem; color:var(--text-sub); margin-bottom:15px;">※今週の「進行日（火〜金）」に記録された△・×のストックリストです。</div>
                 <div id="review-list-container"></div>
             </div>
             
@@ -208,7 +209,7 @@
                 <h3 style="margin-bottom: 12px; font-size:1.05rem;">👤 新規生徒アカウント発行</h3>
                 <div class="form-group"><input type="text" id="new-user-name" placeholder="生徒の名前"></div>
                 <div class="form-group"><input type="text" id="new-user-pass" placeholder="ログインパスワード"></div>
-                <button onclick="App.createStudentAccount()" style="width:100%; padding:12px; background:var(--primary); color:#fff; border:none; border-radius:12px; font-weight:bold;">アカウントを作成</button>
+                <button onclick="App.createStudentAccount()" style="width:100%; padding:12px; background:var(--primary); color:#fff; border:none; border-radius:12px; font-weight:bold; cursor:pointer;">アカウントを作成</button>
             </div>
 
             <h3 style="margin:20px 0 10px 0; font-size:1.1rem;">📊 生徒進捗ダッシュボード</h3>
@@ -293,7 +294,7 @@
     let currentUser = localStorage.getItem('kst_cloud_user');
     let isInitialized = false;
 
-    // データはv30
+    // 🌟【新ルール適用】データ構造はそのまま引き継ぎ
     database.ref('kst_app_data_v30').on('value', (snapshot) => {
         document.getElementById('loading-screen').style.display = 'none';
         
@@ -306,7 +307,7 @@
             if (!db.previousDate) db.previousDate = "";
         }
 
-        // 🌟 自動1日進行チェック
+        // 🌟 朝3時の自動曜日サイクルチェック
         if (App.checkAutoAdvance()) {
             return; 
         }
@@ -352,8 +353,19 @@
 
         getKstAdjustedDateStr: function() {
             const d = new Date();
-            d.setHours(d.getHours() - 3); // 朝3時を境界線にする
+            d.setHours(d.getHours() - 3); // 朝3時を日付の境界線にする
             return d.toLocaleDateString('ja-JP');
+        },
+
+        // 🌟 カレンダーの実際の曜日から、KSTサイクルDay(1〜7)を判定する重要ロジック
+        getKstDayFromRealWeekday: function() {
+            const d = new Date();
+            d.setHours(d.getHours() - 3); // 朝3時前なら前日扱い
+            const realDay = d.getDay(); // 0:日, 1:月, 2:火, 3:水, 4:木, 5:金, 6:土
+            
+            // 🌟 火(2)=Day1, 水(3)=Day2, 木(4)=Day3, 金(5)=Day4, 土(6)=Day5, 日(0)=Day6, 月(1)=Day7 固定！
+            const map = { 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 0: 6, 1: 7 };
+            return map[realDay];
         },
 
         getNowTimeString: function() {
@@ -362,23 +374,34 @@
             return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${min}`;
         },
 
+        // 🌟【自動化】毎朝3時をすぎたら、実際の曜日に合わせてサイクル日(Day1~7)を完全に自動同期
         checkAutoAdvance: function() {
             const adjustedToday = this.getKstAdjustedDateStr();
-            
+            const targetKstDay = this.getKstDayFromRealWeekday();
+
             if (!db.lastAdvancedDate) {
-                db.lastAdvancedDate = adjustedToday; // 初回アクセス時に今日を記録してバグ防止
+                db.lastAdvancedDate = adjustedToday;
                 this.saveDB();
                 return false;
             }
 
+            // 朝3時をすぎて日付が変わった場合の処理
             if (db.lastAdvancedDate !== adjustedToday) {
                 for(let uid in db.users) {
                     if(!db.subjects[uid]) db.subjects[uid] = [];
                     db.subjects[uid].forEach(sub => {
-                        if(!sub.isCompletedToday && sub.cycleDay >= 1 && sub.cycleDay <= 4) {
+                        // 火曜日(Day1)に切り替わるときは、来週のためにストックを完全リセット
+                        if (targetKstDay === 1) {
+                            sub.weakStock = [];
+                        }
+                        
+                        // 1日前（昨日）の時点のサイクルが進行期（Day1〜4）かつ、昨日未完了だった場合はノルマの増加再計算
+                        if (!sub.isCompletedToday && sub.cycleDay >= 1 && sub.cycleDay <= 4) {
                             let totalVol = sub.totalVol || 1;
                             sub.quota = this.calculateQuota(totalVol, sub.completedVol, sub.targetDate, sub.laps || 1, sub.currentLap || 1);
                         }
+                        
+                        // 毎朝の共通リセット
                         sub.tri = 0;
                         sub.cross = 0;
                         sub.weakNotes = "";
@@ -387,11 +410,8 @@
                         sub.lastCompletedRangeText = null;
                         sub.lastCompletedWeekGoalText = null;
                         
-                        sub.cycleDay += 1;
-                        if(sub.cycleDay > 7) {
-                            sub.cycleDay = 1;
-                            sub.weakStock = []; 
-                        }
+                        // 🌟 現在の実際の曜日に完全自動同期
+                        sub.cycleDay = targetKstDay;
                     });
                 }
                 db.previousState = null; 
@@ -424,7 +444,7 @@
             this.saveDB();
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('input-student-pass').value = ''; 
-            this.refreshUI(); // 🌟追加
+            this.refreshUI();
         },
 
         loginManager: function() {
@@ -434,7 +454,7 @@
             this.saveDB();
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('input-manager-pass').value = ''; 
-            this.refreshUI(); // 🌟追加
+            this.renderManagerUI();
         },
 
         logout: function() {
@@ -492,29 +512,6 @@
         },
         closeSubjectModal: function() { document.getElementById('modal-subject').classList.remove('active'); },
 
-        calculateQuota: function(totalVol, completedVol, targetDateStr, totalLaps, currentLap) {
-            const targetDate = new Date(targetDateStr);
-            const today = new Date();
-            today.setHours(0,0,0,0);
-            const diffDays = Math.max(1, Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24)));
-            const realWorkDays = Math.max(1, Math.floor(diffDays * (4 / 7)));
-            
-            let remainingWeight = 0;
-            for (let i = currentLap; i <= totalLaps; i++) {
-                remainingWeight += (i === 1 && totalLaps > 1) ? 2 : 1;
-            }
-            if (totalLaps === 1) remainingWeight = 1;
-            
-            let currentWeight = (currentLap === 1 && totalLaps > 1) ? 2 : 1;
-            if (totalLaps === 1) currentWeight = 1;
-            
-            const lapDays = Math.max(1, Math.floor(realWorkDays * (currentWeight / remainingWeight)));
-            const remainingVol = Math.max(0, totalVol - completedVol);
-            
-            if(remainingVol === 0) return 0;
-            return Math.max(1, Math.ceil(remainingVol / lapDays));
-        },
-
         saveSubject: function() {
             const title = document.getElementById('sub-title').value;
             const unit = document.getElementById('sub-unit').value;
@@ -530,11 +527,14 @@
             const total = endNum - startNum + 1;
             if(!db.subjects[currentUser]) db.subjects[currentUser] = [];
 
+            // 現在の実際の曜日判定に自動で揃えて登録
+            const currentKstDay = this.getKstDayFromRealWeekday();
+
             if (editIndex === "") {
                 const quota = this.calculateQuota(total, 0, dateStr, laps, 1);
                 db.subjects[currentUser].push({
                     title: title, unit: unit, startNum: startNum, endNum: endNum, totalVol: total, targetDate: dateStr, laps: laps, currentLap: 1, quota: quota,
-                    completedVol: 0, cycleDay: 1, tri: 0, cross: 0, weakNotes: "", weakStock: [], completedAt: "", isCompletedToday: false, history: null, step: 1
+                    completedVol: 0, cycleDay: currentKstDay, tri: 0, cross: 0, weakNotes: "", weakStock: [], completedAt: "", isCompletedToday: false, history: null, step: 1
                 });
             } else {
                 const sub = db.subjects[currentUser][editIndex];
@@ -551,7 +551,7 @@
 
             this.saveDB();
             this.closeSubjectModal();
-            this.refreshUI(); // 🌟瞬速反映
+            this.refreshUI();
         },
 
         deleteSubject: function() {
@@ -560,7 +560,7 @@
                 db.subjects[currentUser].splice(editIndex, 1);
                 this.saveDB();
                 this.closeSubjectModal();
-                this.refreshUI(); // 🌟瞬速反映
+                this.refreshUI();
             }
         },
 
@@ -571,7 +571,7 @@
             db.users[uid].teacherComment = commentArea.value;
             this.saveDB();
             alert("メッセージを送信しました！");
-            this.refreshUI(); // 🌟瞬速反映
+            this.refreshUI();
         },
 
         goToStep2: function(subIndex) {
@@ -579,12 +579,12 @@
             if(noteInput) db.subjects[currentUser][subIndex].weakNotes = noteInput.value;
             db.subjects[currentUser][subIndex].step = 2;
             this.saveDB();
-            this.refreshUI(); // 🌟瞬速反映
+            this.refreshUI();
         },
         backToStep1: function(subIndex) {
             db.subjects[currentUser][subIndex].step = 1;
             this.saveDB();
-            this.refreshUI(); // 🌟瞬速反映
+            this.refreshUI();
         },
         updateCount: function(subIndex, type, change) {
             let sub = db.subjects[currentUser][subIndex];
@@ -592,54 +592,34 @@
             sub[type] += change;
             if(sub[type] < 0) sub[type] = 0;
             this.saveDB();
-            this.refreshUI(); // 🌟瞬速反映
+            this.refreshUI();
         },
         updateNotes: function(subIndex, value) {
             db.subjects[currentUser][subIndex].weakNotes = value;
             this.saveDB();
-            // メモ入力中はカーソルが外れると困るのでここではrefreshUIしない
-        },
-
-        formatUnitLabel: function(num, unitType) {
-            if (isNaN(num)) return "-"; 
-            if (unitType === 'page') return `P${num}`;
-            if (unitType === 'question') return `問${num}`;
-            if (unitType === 'chapter') return `第${num}章`;
-            return `${num}`;
-        },
-        getUnitName: function(unitType) {
-            if (unitType === 'page') return `ページ`;
-            if (unitType === 'question') return `問題番号`;
-            if (unitType === 'chapter') return `章番号`;
-            return `番号`;
         },
 
         completeSubject: function(subIndex) {
             let sub = db.subjects[currentUser][subIndex];
             if(sub.isCompletedToday) return;
 
-            let s_start = sub.startNum !== undefined ? sub.startNum : 1;
-            let s_end = sub.endNum !== undefined ? sub.endNum : (sub.totalVol || 1);
-            let s_unit = sub.unit || 'none';
-            let s_quota = sub.quota || 1;
-
             let isAdvance = (sub.cycleDay >= 1 && sub.cycleDay <= 4);
             let isTest = (sub.cycleDay === 7);
             
-            let startNum = s_start + sub.completedVol;
-            let endNum = Math.min(startNum + s_quota - 1, s_end);
-            let cycleStartVol = Math.max(0, sub.completedVol - (sub.cycleDay - 1) * s_quota);
-            let cycleEndVol = cycleStartVol + (s_quota * 4) - 1;
+            let startNum = sub.startNum + sub.completedVol;
+            let endNum = Math.min(startNum + sub.quota - 1, sub.endNum);
+            let cycleStartVol = Math.max(0, sub.completedVol - (sub.cycleDay - 1) * sub.quota);
+            let cycleEndVol = cycleStartVol + (sub.quota * 4) - 1;
             
-            let displayStart = this.formatUnitLabel(startNum, s_unit);
-            let displayEnd = this.formatUnitLabel(endNum, s_unit);
-            let weekStartLabel = this.formatUnitLabel(s_start + cycleStartVol, s_unit);
-            let weekEndLabel = this.formatUnitLabel(Math.min(s_start + cycleEndVol, s_end), s_unit);
+            let displayStart = this.formatUnitLabel(startNum, sub.unit);
+            let displayEnd = this.formatUnitLabel(endNum, sub.unit);
+            let weekStartLabel = this.formatUnitLabel(sub.startNum + cycleStartVol, sub.unit);
+            let weekEndLabel = this.formatUnitLabel(Math.min(sub.startNum + cycleEndVol, sub.endNum), sub.unit);
 
             if (isAdvance) {
-                let currentStart = s_start + sub.completedVol;
-                let defaultEnd = Math.min(currentStart + s_quota - 1, s_end);
-                let unitName = this.getUnitName(s_unit);
+                let currentStart = sub.startNum + sub.completedVol;
+                let defaultEnd = Math.min(currentStart + sub.quota - 1, sub.endNum);
+                let unitName = this.getUnitName(sub.unit);
                 
                 let msg = `【最終確認】\n印をつけた問題以外は、すべて自力で解ける(○)状態になりましたか？\n\n今日完璧にした最後の「${unitName}」を数字で入力してください。`;
                 
@@ -647,19 +627,19 @@
                 if (input === null) return; 
                 
                 let newEndNum = parseInt(input);
-                if (isNaN(newEndNum) || newEndNum < (currentStart - 1) || newEndNum > s_end) {
+                if (isNaN(newEndNum) || newEndNum < (currentStart - 1) || newEndNum > sub.endNum) {
                     alert(`正しい数値を入力してください。`);
                     return;
                 }
                 
                 sub.history = { 
                     completedVol: sub.completedVol, tri: sub.tri, cross: sub.cross, 
-                    step: sub.step || 1, currentLap: sub.currentLap || 1, quota: s_quota, 
+                    step: sub.step || 1, currentLap: sub.currentLap || 1, quota: sub.quota, 
                     completedAt: sub.completedAt || "",
                     weakStock: sub.weakStock ? JSON.parse(JSON.stringify(sub.weakStock)) : []
                 };
                 
-                let actualEndLabel = this.formatUnitLabel(newEndNum, s_unit);
+                let actualEndLabel = this.formatUnitLabel(newEndNum, sub.unit);
                 sub.lastCompletedRangeText = displayStart + " 〜 " + actualEndLabel;
                 sub.lastCompletedWeekGoalText = weekStartLabel + " 〜 " + weekEndLabel;
                 sub.completedAt = this.getNowTimeString();
@@ -680,28 +660,28 @@
                 }
                 
                 sub.isCompletedToday = true;
-                sub.completedVol = Math.max(sub.completedVol, newEndNum - s_start + 1);
+                sub.completedVol = Math.max(sub.completedVol, newEndNum - sub.startNum + 1);
                 
                 let totalVol = sub.totalVol || 1;
                 if(sub.completedVol >= totalVol) {
                     sub.completedVol = totalVol;
                     const totalLaps = sub.laps || 1;
-                    if ((sub.currentLap || 1) < totalLaps) {
-                        sub.currentLap = (sub.currentLap || 1) + 1;
+                    if (sub.currentLap < totalLaps) {
+                        sub.currentLap += 1;
                         sub.completedVol = 0; 
                         sub.quota = this.calculateQuota(totalVol, sub.completedVol, sub.targetDate, totalLaps, sub.currentLap);
                         alert(`🎉 おめでとうございます！\n「${sub.title}」の ${sub.currentLap - 1}周目が完了しました！\n次は ${sub.currentLap}周目 に突入します！`);
                     }
                 }
                 this.saveDB();
-                this.refreshUI(); // 🌟瞬速反映
+                this.refreshUI();
 
             } else if (isTest) {
-                let msg = `【最終確認】\n今週の範囲の確認テストは完璧でしたか？\n(はいを押すと来週のサイクルに進む準備が完了します)`;
+                let msg = `【最終確認】\n今週の範囲の確認テストは完璧でしたか？\n(はいを押すと、来週火曜日からの新サイクルへ進む準備が完了します)`;
                 if(confirm(msg)) {
                     sub.history = { 
                         completedVol: sub.completedVol, tri: sub.tri, cross: sub.cross, 
-                        step: sub.step || 1, currentLap: sub.currentLap || 1, quota: s_quota, 
+                        step: sub.step || 1, currentLap: sub.currentLap || 1, quota: sub.quota, 
                         weakNotes: sub.weakNotes || "", completedAt: sub.completedAt || "",
                         weakStock: sub.weakStock ? JSON.parse(JSON.stringify(sub.weakStock)) : []
                     };
@@ -710,14 +690,14 @@
                     sub.completedAt = this.getNowTimeString();
                     sub.isCompletedToday = true;
                     this.saveDB();
-                    this.refreshUI(); // 🌟瞬速反映
+                    this.refreshUI();
                 }
             } else {
-                let msg = `【最終確認】\n復習対象の問題はすべて完璧(○)になりましたか？\n(はいを押すと、今週の弱点ストックがリセットされます)`;
+                let msg = `【最終確認】\n復習対象の問題はすべて完璧(○)になりましたか？\n(はいを押すと、今週の弱点ストックが解消されます)`;
                 if(confirm(msg)) {
                     sub.history = { 
                         completedVol: sub.completedVol, tri: sub.tri, cross: sub.cross, 
-                        step: sub.step || 1, currentLap: sub.currentLap || 1, quota: s_quota, 
+                        step: sub.step || 1, currentLap: sub.currentLap || 1, quota: sub.quota, 
                         weakNotes: sub.weakNotes || "", completedAt: sub.completedAt || "",
                         weakStock: sub.weakStock ? JSON.parse(JSON.stringify(sub.weakStock)) : []
                     };
@@ -728,9 +708,8 @@
                     sub.tri = 0;
                     sub.cross = 0;
                     sub.weakNotes = ""; 
-                    sub.weakStock = []; 
                     this.saveDB();
-                    this.refreshUI(); // 🌟瞬速反映
+                    this.refreshUI();
                 }
             }
         },
@@ -755,7 +734,7 @@
                     if(sub.history.weakStock) sub.weakStock = sub.history.weakStock;
                 }
                 this.saveDB();
-                this.refreshUI(); // 🌟瞬速反映
+                this.refreshUI();
             }
         },
 
@@ -764,6 +743,8 @@
             document.getElementById('header-title').innerText = "KST Study Route";
             document.getElementById('view-student').style.display = 'block';
             document.getElementById('student-nav').style.display = 'flex';
+
+            document.getElementById('student-name-display').innerText = db.users[currentUser].name;
 
             const messageArea = document.getElementById('student-message-area');
             const teacherMsg = db.users[currentUser].teacherComment;
@@ -795,10 +776,11 @@
             let globalHasReview = false;
 
             subjects.forEach((sub, index) => {
-                let s_start = sub.startNum !== undefined ? sub.startNum : 1;
-                let s_end = sub.endNum !== undefined ? sub.endNum : (sub.totalVol || 1);
-                let s_unit = sub.unit || 'none';
-                let s_quota = sub.quota || 1;
+                // 自動で現在のカレンダーの曜日にサイクルを強制一致
+                const targetKstDay = this.getKstDayFromRealWeekday();
+                if(sub.cycleDay !== targetKstDay) {
+                    sub.cycleDay = targetKstDay;
+                }
 
                 const cDay = sub.cycleDay;
                 let isAdvance = (cDay >= 1 && cDay <= 4);
@@ -806,11 +788,11 @@
                 
                 let statusBannerHtml = '';
                 if(isAdvance) {
-                    statusBannerHtml = `<div class="status-banner advance">🚀 今日は「進める日」です（Day ${cDay}/4）</div>`;
+                    statusBannerHtml = `<div class="status-banner advance">🚀 火〜金：今日は「進める日」です（Day ${cDay}/4）</div>`;
                 } else if(isTest) {
-                    statusBannerHtml = `<div class="status-banner test">📝 今日は「確認テストの日」です</div>`;
+                    statusBannerHtml = `<div class="status-banner test">📝 月曜日：今日は「確認テスト・調整日」です</div>`;
                 } else {
-                    statusBannerHtml = `<div class="status-banner review">🔄 今日は「復習する日」です（Day ${cDay === 5 ? 1 : 2}/2）</div>`;
+                    statusBannerHtml = `<div class="status-banner review">🔄 土日：今日は今週の弱点を「総復習する日」です（Day ${cDay === 5 ? 1 : 2}/2）</div>`;
                 }
                 
                 const currentLap = sub.currentLap || 1;
@@ -819,14 +801,15 @@
 
                 let activeCompletedVol = sub.isCompletedToday && sub.history ? (sub.history.completedVol || 0) : (sub.completedVol || 0);
 
+                // サイクルマップ（月曜始まり、土日を復習、月をテストにビジュアル固定）
                 let mapHtml = `<div class="cycle-map">`;
+                const weekLabels = ["火", "水", "木", "金", "土", "日", "月"];
                 for(let i=1; i<=7; i++) {
                     let dotClass = "cycle-dot";
                     if(i === cDay) dotClass += " active";
                     if(i === 5 || i === 6) dotClass += " review";
                     if(i === 7) dotClass += " test";
-                    let label = i <= 4 ? "進" : (i <= 6 ? "復" : "テ");
-                    mapHtml += `<div class="${dotClass}">${label}</div>`;
+                    mapHtml += `<div class="${dotClass}">${weekLabels[i-1]}</div>`;
                 }
                 mapHtml += `</div>`;
 
@@ -840,7 +823,7 @@
                             stockHtml += `
                                 <div style="font-size:0.8rem; background:#F8F9FA; padding:10px; border-radius:10px; margin-top:8px; border-left:4px solid var(--danger); text-align:left;">
                                     <div style="font-weight:700; color:#333; display:flex; justify-content:space-between;">
-                                        <span>Day${stock.cycleDay}の課題: ${stock.range}</span>
+                                        <span>${weekLabels[stock.cycleDay-1]}曜日の課題: ${stock.range}</span>
                                         <span><span class="badge-tri">△</span>${stock.tri}  <span class="badge-cross">×</span>${stock.cross}</span>
                                     </div>
                                     ${stock.notes ? `<div style="color:#666; font-size:0.75rem; margin-top:4px; background:#fff; padding:4px 8px; border-radius:4px; border:1px solid #eee;">📝 メモ: ${stock.notes}</div>` : ''}
@@ -872,22 +855,22 @@
                     `;
                 } else {
                     if(isAdvance) {
-                        const startNum = s_start + activeCompletedVol;
-                        const endNum = Math.min(startNum + s_quota - 1, s_end);
+                        const startNum = sub.startNum + activeCompletedVol;
+                        const endNum = Math.min(startNum + sub.quota - 1, sub.endNum);
                         const step = sub.step || 1;
 
-                        const displayStart = this.formatUnitLabel(startNum, s_unit);
-                        const displayEnd = this.formatUnitLabel(endNum, s_unit);
+                        const displayStart = this.formatUnitLabel(startNum, sub.unit);
+                        const displayEnd = this.formatUnitLabel(endNum, sub.unit);
                         
-                        let cycleStartVol = Math.max(0, activeCompletedVol - (cDay - 1) * s_quota);
-                        let cycleEndVol = cycleStartVol + (s_quota * 4) - 1;
-                        let weekStartLabel = this.formatUnitLabel(s_start + cycleStartVol, s_unit);
-                        let weekEndLabel = this.formatUnitLabel(Math.min(s_start + cycleEndVol, s_end), s_unit);
+                        let cycleStartVol = Math.max(0, activeCompletedVol - (cDay - 1) * sub.quota);
+                        let cycleEndVol = cycleStartVol + (sub.quota * 4) - 1;
+                        let weekStartLabel = this.formatUnitLabel(sub.startNum + cycleStartVol, sub.unit);
+                        let weekEndLabel = this.formatUnitLabel(Math.min(sub.startNum + cycleEndVol, sub.endNum), sub.unit);
 
                         taskHtml = `
                             ${statusBannerHtml}
                             <div style="font-size: 0.75rem; color: #8E8E93; margin-bottom: 8px;">
-                                💡 今週(4日間)の目標: <strong>${weekStartLabel} 〜 ${weekEndLabel}</strong> (1日 ${s_quota}${this.getUnitName(s_unit)})
+                                💡 今週の目標: <strong>${weekStartLabel} 〜 ${weekEndLabel}</strong> (1日 ${sub.quota}${this.getUnitName(sub.unit)})
                             </div>
                             <div class="task-detail" style="margin-bottom:4px;"><span>今日の範囲</span> <strong>${displayStart} 〜 ${displayEnd}</strong></div>
                             ${mapHtml}
@@ -971,7 +954,7 @@
                             hasItemsInTab = true;
                             innerTabHtml += `
                                 <div style="font-size:0.8rem; background:#F8F9FA; padding:8px; border-radius:6px; margin-top:6px; display:flex; justify-content:space-between; align-items:center;">
-                                    <span><strong>Day${w.cycleDay}</strong> (${w.range}) ${w.notes ? `<br><small style="color:#666;">📝 ${w.notes}</small>` : ''}</span>
+                                    <span><strong>${weekLabels[w.cycleDay-1]}曜日</strong> (${w.range}) ${w.notes ? `<br><small style="color:#666;">📝 ${w.notes}</small>` : ''}</span>
                                     <span><span class="badge-tri">△</span>${w.tri}  <span class="badge-cross">×</span>${w.cross}</span>
                                 </div>
                             `;
@@ -1003,7 +986,7 @@
                         <div class="progress-box">
                             <div class="progress-header" style="color:var(--primary);"><span>${currentLap}周目の進捗</span><span>${currentLapPct}%</span></div>
                             <div class="progress-bg"><div class="progress-fill lap" style="width:${currentLapPct}%;"></div></div>
-                            <div style="text-align:right; font-size:0.75rem; color:var(--text-sub); margin-bottom:10px;">${activeCompletedVol} / ${totalVol} 完了</div>
+                            <div style="text-align:right; font-size:0.75rem; color:var(--text-sub); margin-top:5px;">${activeCompletedVol} / ${sub.totalVol} 完了</div>
                             <div class="progress-header"><span>全体（${totalLaps}周）の進捗</span><span>${overallPct}%</span></div>
                             <div class="progress-bg" style="height:6px;"><div class="progress-fill" style="width:${overallPct}%;"></div></div>
                         </div>
@@ -1043,23 +1026,20 @@
             document.getElementById('view-student').style.display = 'none';
             document.getElementById('view-manager').style.display = 'block';
 
-            const todayStr = this.getKstAdjustedDateStr();
             const advanceArea = document.getElementById('manager-advance-area');
             
-            let advanceHtml = '';
-            if (db.lastAdvancedDate === todayStr) {
-                advanceHtml = `<button onclick="App.advanceSystemDay()" style="width:100%; padding:12px; background:#F5F5F5; border:2px solid #E5E5EA; color:#999; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:8px;">✅ 本日の日付更新は完了済みです（※毎朝3時自動更新）</button>`;
-            } else {
-                advanceHtml = `<button onclick="App.advanceSystemDay()" style="width:100%; padding:12px; background:#E8F4FD; border:2px solid #90CAF9; color:#1976D2; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:8px;">⚠️⏭️ 日付を1日進める (遅れは自動再計算されます)</button>`;
-            }
+            // 🌟 曜日固定になったため、手動日付ボタンは「デバッグ・テスト用緊急ボタン」であることを明記
+            let advanceHtml = `<button onclick="App.advanceSystemDay()" style="width:100%; padding:12px; background:#FFF3E0; border:2px solid #FFE0B2; color:#F57C00; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:8px;">⚠️【緊急テスト用】手動で1日サイクルを進める</button>`;
             
             if (db.previousState) {
-                advanceHtml += `<button onclick="App.undoAdvanceSystemDay()" style="width:100%; padding:8px; background:transparent; border:1px solid #8E8E93; color:#8E8E93; border-radius:8px; font-weight:bold; cursor:pointer; font-size: 0.85rem;">⏪ 間違えて進めた場合はここを押して1日戻す</button>`;
+                advanceHtml += `<button onclick="App.undoAdvanceSystemDay()" style="width:100%; padding:8px; background:transparent; border:1px solid #8E8E93; color:#8E8E93; border-radius:8px; font-weight:bold; cursor:pointer; font-size: 0.85rem;">⏪ 手動操作を取り消して1日戻す</button>`;
             }
             advanceArea.innerHTML = advanceHtml;
 
             const listContainer = document.getElementById('manager-student-list');
             listContainer.innerHTML = '';
+
+            const weekLabels = ["火", "水", "木", "金", "土", "日", "月"];
 
             for(let uid in db.users) {
                 const uInfo = db.users[uid];
@@ -1073,7 +1053,7 @@
                         let statusIcon = sub.isCompletedToday ? "✅" : "✏️";
                         let activeProgressVol = sub.isCompletedToday && sub.history ? (sub.history.completedVol || 0) : (sub.completedVol || 0);
                         let totalVol = sub.totalVol || 1;
-                        const percent = Math.floor((((sub.currentLap || 1) - 1) * totalVol + activeProgressVol) / ((sub.laps || 1) * totalVol) * 100);
+                        const percent = Math.floor((((sub.currentLap || 1) - 1) * totalVol + activeProgressVol) / (sub.laps * totalVol) * 100);
                         
                         let stockTri = sub.tri || 0;
                         let stockCross = sub.cross || 0;
@@ -1090,7 +1070,7 @@
                             <div style="margin-bottom:8px; background:#F8F9FA; padding:10px; border-radius:8px;">
                                 <div style="display:flex; justify-content:space-between; align-items:center;">
                                     <div style="font-weight:700; color:var(--manager); font-size:0.9rem;">
-                                        ${statusIcon} ${sub.title} <span style="font-size:0.7rem; font-weight:normal; color:#666;">(${sub.currentLap || 1}/${sub.laps || 1}周・Day${sub.cycleDay})</span>
+                                        ${statusIcon} ${sub.title} <span style="font-size:0.7rem; font-weight:normal; color:#666;">(${sub.currentLap}/${sub.laps}周・${weekLabels[sub.cycleDay-1]}曜日)</span>
                                     </div>
                                     <div style="font-size:0.8rem; font-weight:bold;">
                                         <span style="color:var(--danger); margin-right:8px;">弱点ストック:${stockTri + stockCross}</span>
@@ -1121,13 +1101,9 @@
             }
         },
 
+        // 緊急デバッグ用の手動進行命令
         advanceSystemDay: function() {
-            const todayStr = this.getKstAdjustedDateStr();
-            if (db.lastAdvancedDate === todayStr) {
-                if(!confirm("本日はすでに日付を更新済みです。\nさらに無理やりもう1日進めますか？")) return;
-            } else {
-                if(!confirm("日付を進めますか？\n（未完了の教材は、自動的にノルマが再計算・増加されます）")) return;
-            }
+            if(!confirm("【デバッグ命令】手動で強制的に1日サイクルを進めますか？")) return;
 
             db.previousState = JSON.parse(JSON.stringify(db.subjects));
             db.previousDate = db.lastAdvancedDate;
@@ -1138,11 +1114,9 @@
                         let totalVol = sub.totalVol || 1;
                         sub.quota = this.calculateQuota(totalVol, sub.completedVol, sub.targetDate, sub.laps || 1, sub.currentLap || 1);
                     }
-                    
                     sub.tri = 0;
                     sub.cross = 0;
                     sub.weakNotes = "";
-                    
                     sub.isCompletedToday = false;
                     sub.step = 1; 
                     sub.lastCompletedRangeText = null;
@@ -1155,24 +1129,20 @@
                     }
                 });
             }
-            db.lastAdvancedDate = todayStr;
             this.saveDB();
-            this.refreshUI(); // 🌟瞬速反映
+            this.refreshUI();
         },
 
         undoAdvanceSystemDay: function() {
-            if(!db.previousState) {
-                alert("戻せる履歴がありません。");
-                return;
-            }
-            if(confirm("日付を1日前に戻しますか？\n※昨日の状態に完全に巻き戻ります。")) {
+            if(!db.previousState) return alert("戻せる履歴がありません。");
+            if(confirm("手動操作を取り消して1日前に戻しますか？")) {
                 db.subjects = db.previousState;
                 db.lastAdvancedDate = db.previousDate || "";
                 db.previousState = null; 
                 db.previousDate = "";
                 this.saveDB();
-                this.refreshUI(); // 🌟瞬速反映
-                alert("1日前の状態に復元しました。");
+                this.refreshUI();
+                alert("巻き戻しを完了しました。");
             }
         },
 
