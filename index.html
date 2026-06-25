@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KST Study Route - Multi Subjects Fix</title>
+    <title>KST Study Route - Perfect Fix</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
     
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -24,19 +24,21 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Noto Sans JP', sans-serif; background-color: var(--bg-color); color: var(--text-main); -webkit-font-smoothing: antialiased; }
-        .app-container { max-width: 480px; margin: 0 auto; background-color: var(--bg-color); height: 100vh; height: 100dvh; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.05); position: relative; overflow: hidden; }
+        
+        /* 🌟 スマホで下が隠れないように、自然なスクロールに変更 */
+        body { font-family: 'Noto Sans JP', sans-serif; background-color: var(--bg-color); color: var(--text-main); -webkit-font-smoothing: antialiased; margin: 0; padding: 0; padding-bottom: 80px; }
+        .app-container { max-width: 480px; margin: 0 auto; background-color: var(--bg-color); min-height: 100vh; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.05); position: relative; }
 
         /* ヘッダー */
-        .header { background: var(--primary-grad); color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; transition: 0.3s; z-index: 10; box-shadow: 0 4px 12px rgba(0,122,255,0.2); flex-shrink: 0; }
+        .header { background: var(--primary-grad); color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; transition: 0.3s; z-index: 10; box-shadow: 0 4px 12px rgba(0,122,255,0.2); }
         .header.manager-mode { background: #2C3E50; box-shadow: 0 4px 12px rgba(44,62,80,0.2); }
         .header h1 { font-size: 1.2rem; font-weight: 700; margin: 0; }
         .btn-logout { background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; cursor: pointer; backdrop-filter: blur(4px); }
 
-        .date-bar { background: #FFFFFF; padding: 8px 20px; font-size: 0.85rem; font-weight: 700; color: #555; border-bottom: 1px solid #E5E5EA; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .date-bar { background: #FFFFFF; padding: 8px 20px; font-size: 0.85rem; font-weight: 700; color: #555; border-bottom: 1px solid #E5E5EA; display: flex; justify-content: space-between; align-items: center; }
 
         /* ログイン画面 */
-        .login-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary-grad); display: flex; justify-content: center; align-items: center; z-index: 100; flex-direction: column; padding: 20px; }
+        .login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary-grad); display: flex; justify-content: center; align-items: center; z-index: 2000; flex-direction: column; padding: 20px; }
         .login-box { background: var(--card-bg); padding: 25px; border-radius: 24px; width: 100%; max-width: 360px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
         .login-box h2 { text-align: center; color: var(--primary); font-size: 1.4rem; margin-bottom: 24px; font-weight: 700; }
         .login-section { background: #F8F9FA; padding: 16px; border-radius: 16px; margin-bottom: 16px; border: 1px solid #E5E5EA; }
@@ -49,11 +51,10 @@
         .btn-login.student { background: var(--primary); }
         .btn-login.manager { background: var(--manager); }
 
-        /* 🌟 メインエリア (下部の余白を大幅に増やしてスクロール隠れを防止) */
-        .main-content { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 120px; }
+        /* メインエリア */
+        .main-content { flex: 1; padding: 20px; }
         .section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end; color: #1c1c1e; }
         
-        /* ガイドパネル */
         .guide-panel { background: #E8F4FD; border-radius: 16px; padding: 16px; margin-bottom: 20px; border: 2px solid #BBDEFB; }
         .guide-panel h3 { color: #1976D2; font-size: 1rem; margin-bottom: 10px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
         .guide-panel ul { padding-left: 0; font-size: 0.8rem; color: #444; line-height: 1.5; list-style-type: none; margin: 0;}
@@ -68,9 +69,8 @@
         .subject-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
         .subject-title { font-weight: 700; font-size: 1.1rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;}
         .lap-badge { font-size: 0.75rem; background: #E5E5EA; color: #333; padding: 2px 8px; border-radius: 8px; font-weight: 700; }
-        .btn-edit { background: none; border: none; color: var(--text-sub); font-size: 1rem; cursor: pointer; }
+        .btn-edit { background: none; border: none; color: var(--text-sub); font-size: 0.9rem; cursor: pointer; text-decoration: underline; }
         
-        /* ステータスバナー */
         .status-banner { padding: 10px; border-radius: 10px; font-weight: 700; font-size: 0.9rem; margin-bottom: 12px; text-align: center; }
         .status-banner.advance { background: #E3F2FD; color: #1976D2; border: 1px solid #BBDEFB; }
         .status-banner.review { background: #FFF3E0; color: #F57C00; border: 1px solid #FFE0B2; }
@@ -92,9 +92,9 @@
         .btn-next-step { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,122,255,0.2); margin-top: 10px; }
         .btn-undo { width: 100%; padding: 12px; background: transparent; border: 1.5px solid #8E8E93; color: #8E8E93; border-radius: 12px; font-weight: 700; font-size: 0.9rem; cursor: pointer; margin-top: 10px; }
         
-        /* 右下フローティング追加ボタン */
-        .fab-add { position: fixed; bottom: 85px; right: 20px; width: 60px; height: 60px; background: var(--primary); color: white; border: none; border-radius: 50%; font-size: 30px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,122,255,0.4); cursor: pointer; display: flex; justify-content: center; align-items: center; z-index: 100; transition: transform 0.2s; }
-        .fab-add:active { transform: scale(0.9); }
+        /* 🌟 教材追加ボタンを一番上にドドンと設置 */
+        .btn-add-subject { width: 100%; padding: 16px; background: #fff; border: 2px dashed var(--primary); color: var(--primary); border-radius: 12px; font-weight: 700; font-size: 1.05rem; cursor: pointer; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; box-shadow: 0 4px 10px rgba(0,122,255,0.1); }
+        .btn-add-subject:active { background: #E3F2FD; }
 
         /* 進捗バー */
         .progress-box { background: #F8F9FA; padding: 12px; border-radius: 12px; margin-top: 10px; }
@@ -115,9 +115,9 @@
         .cycle-dot.test.active::before { background: #7B1FA2; box-shadow: 0 0 5px rgba(123,31,162,0.5); }
 
         /* モーダル */
-        .modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 500; padding: 20px; backdrop-filter: blur(3px); }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 3000; padding: 20px; backdrop-filter: blur(3px); }
         .modal.active { display: flex; }
-        .modal-content { background: var(--card-bg); width: 100%; border-radius: 20px; padding: 24px; max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: var(--card-bg); width: 100%; max-width: 440px; border-radius: 20px; padding: 24px; max-height: 90vh; overflow-y: auto; }
         .modal-actions { display: flex; gap: 12px; margin-top: 20px; }
         .btn-cancel, .btn-submit { flex: 1; padding: 14px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; }
         .btn-cancel { background: #F2F2F7; color: var(--text-main); }
@@ -125,8 +125,8 @@
         .btn-delete { background: #FFEBEE; color: #D32F2F; width: 100%; padding: 12px; border: none; border-radius: 12px; font-weight: bold; margin-top: 15px; cursor: pointer; }
         .btn-delete-student { background: transparent; border: 1px solid #FF3B30; color: #FF3B30; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
 
-        /* ボトムナビ */
-        .bottom-nav { width: 100%; background: #fff; border-top: 1px solid #E5E5EA; display: flex; justify-content: space-around; padding: 12px 0 20px 0; z-index: 10; flex-shrink: 0; margin-top: auto; }
+        /* 🌟 ボトムナビ (スマホで絶対に隠れないように fixed + bottom:0 に設定) */
+        .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: rgba(255,255,255,0.95); border-top: 1px solid #E5E5EA; display: flex; justify-content: space-around; padding: 12px 0 25px 0; z-index: 1000; backdrop-filter: blur(10px); }
         .nav-item { text-align: center; font-size: 0.7rem; color: var(--text-sub); cursor: pointer; flex: 1; font-weight: 700; transition: 0.2s; }
         .nav-item.active { color: var(--primary); }
         .nav-icon { font-size: 1.4rem; display: block; margin-bottom: 2px; }
@@ -135,7 +135,7 @@
         .tab-content.active { display: block; animation: fadeIn 0.3s; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         
-        #loading-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); display: flex; justify-content: center; align-items: center; z-index: 999; font-weight: bold; color: var(--primary); font-size: 1.2rem; }
+        #loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); display: flex; justify-content: center; align-items: center; z-index: 9999; font-weight: bold; color: var(--primary); font-size: 1.2rem; }
     </style>
 </head>
 <body>
@@ -186,9 +186,11 @@
                     </ul>
                 </div>
                 
+                <button class="btn-add-subject" onclick="App.openSubjectModal('add')">
+                    <span style="font-size: 1.4rem;">＋</span> 新しい教材を追加する
+                </button>
+                
                 <div id="student-subject-list"></div>
-
-                <button class="fab-add" onclick="App.openSubjectModal('add')">＋</button>
             </div>
             
             <div id="tab-review" class="tab-content">
@@ -272,7 +274,7 @@
 
 <script>
     // ==========================================
-    // Firebaseの設定
+    // Firebaseの設定 (キーはそのまま引き継ぎ)
     // ==========================================
     const firebaseConfig = {
         apiKey: "AIzaSyDkrj4-YZm8k8OYCiHQ9hXximSi_G0z_ZI",
@@ -293,7 +295,7 @@
     let currentUser = localStorage.getItem('kst_cloud_user');
     let isInitialized = false;
 
-    // データキーはそのまま
+    // 前回のデータ（v26）を読み込み
     database.ref('kst_app_data_v26').on('value', (snapshot) => {
         document.getElementById('loading-screen').style.display = 'none';
         
@@ -400,13 +402,6 @@
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             document.getElementById(`tab-${tabName}`).classList.add('active');
             element.classList.add('active');
-            
-            const fab = document.querySelector('.fab-add');
-            if(tabName === 'today' && currentUser !== 'manager') {
-                fab.style.display = 'flex';
-            } else {
-                fab.style.display = 'none';
-            }
             if(currentUser !== 'manager') this.renderStudentUI();
         },
 
@@ -429,7 +424,7 @@
                 document.getElementById('sub-title').value = sub.title;
                 document.getElementById('sub-unit').value = sub.unit || 'page';
                 
-                // 🌟 古いデータ互換性エラー防止
+                // 🌟 古いデータに対する安全な読み込み
                 document.getElementById('sub-start').value = sub.startNum !== undefined ? sub.startNum : 1;
                 document.getElementById('sub-end').value = sub.endNum !== undefined ? sub.endNum : (sub.totalVol || 1);
                 
@@ -706,7 +701,7 @@
 
             const subjects = db.subjects[currentUser] || [];
             if(subjects.length === 0) {
-                listContainer.innerHTML = '<p style="text-align:center; color:var(--text-sub); padding:40px 0; font-size:0.9rem;">まだ教材がありません。<br>右下の ＋ ボタンから追加してください。</p>';
+                listContainer.innerHTML = '<p style="text-align:center; color:var(--text-sub); padding:40px 0; font-size:0.9rem;">まだ教材がありません。<br>上のボタンから追加してください。</p>';
                 reviewContainer.innerHTML = '<p style="text-align:center; color:var(--text-sub); padding:40px 0;">教材がありません。</p>';
                 progressContainer.innerHTML = '<p style="text-align:center; color:var(--text-sub); padding:40px 0;">教材がありません。</p>';
                 return;
@@ -715,11 +710,16 @@
             let globalHasReview = false;
 
             subjects.forEach((sub, index) => {
-                // 🌟 古いデータ互換性用フォールバック
-                let s_start = sub.startNum !== undefined ? sub.startNum : 1;
-                let s_end = sub.endNum !== undefined ? sub.endNum : (sub.totalVol || 1);
-                let s_unit = sub.unit || 'none';
-                let s_quota = sub.quota || 1;
+                // 🌟 古いデータが混ざっていても絶対にエラーで止めないための補完
+                if (sub.startNum === undefined) sub.startNum = 1;
+                if (sub.endNum === undefined) sub.endNum = sub.totalVol || 1;
+                if (sub.unit === undefined) sub.unit = 'page';
+                if (sub.laps === undefined) sub.laps = 1;
+                if (sub.currentLap === undefined) sub.currentLap = 1;
+                if (sub.quota === undefined) sub.quota = 1;
+                if (sub.completedVol === undefined) sub.completedVol = 0;
+                if (sub.cycleDay === undefined) sub.cycleDay = 1;
+                if (sub.totalVol === undefined) sub.totalVol = 1;
 
                 const cDay = sub.cycleDay;
                 let isAdvance = (cDay >= 1 && cDay <= 4);
@@ -734,11 +734,11 @@
                     statusBannerHtml = `<div class="status-banner review">🔄 今日は「復習する日」です（Day ${cDay === 5 ? 1 : 2}/2）</div>`;
                 }
                 
-                const currentLap = sub.currentLap || 1;
-                const totalLaps = sub.laps || 1;
+                const currentLap = sub.currentLap;
+                const totalLaps = sub.laps;
                 const lapBadge = `<span class="lap-badge">${currentLap}周目 / ${totalLaps}周</span>`;
 
-                let activeCompletedVol = sub.isCompletedToday && sub.history ? (sub.history.completedVol || 0) : (sub.completedVol || 0);
+                let activeCompletedVol = sub.isCompletedToday && sub.history ? (sub.history.completedVol || 0) : sub.completedVol;
 
                 let mapHtml = `<div class="cycle-map">`;
                 for(let i=1; i<=7; i++) {
@@ -793,22 +793,22 @@
                     `;
                 } else {
                     if(isAdvance) {
-                        const startNum = s_start + activeCompletedVol;
-                        const endNum = Math.min(startNum + s_quota - 1, s_end);
+                        const startNum = sub.startNum + activeCompletedVol;
+                        const endNum = Math.min(startNum + sub.quota - 1, sub.endNum);
                         const step = sub.step || 1;
 
-                        const displayStart = this.formatUnitLabel(startNum, s_unit);
-                        const displayEnd = this.formatUnitLabel(endNum, s_unit);
+                        const displayStart = this.formatUnitLabel(startNum, sub.unit);
+                        const displayEnd = this.formatUnitLabel(endNum, sub.unit);
                         
-                        let cycleStartVol = Math.max(0, activeCompletedVol - (cDay - 1) * s_quota);
-                        let cycleEndVol = cycleStartVol + (s_quota * 4) - 1;
-                        let weekStartLabel = this.formatUnitLabel(s_start + cycleStartVol, s_unit);
-                        let weekEndLabel = this.formatUnitLabel(Math.min(s_start + cycleEndVol, s_end), s_unit);
+                        let cycleStartVol = Math.max(0, activeCompletedVol - (cDay - 1) * sub.quota);
+                        let cycleEndVol = cycleStartVol + (sub.quota * 4) - 1;
+                        let weekStartLabel = this.formatUnitLabel(sub.startNum + cycleStartVol, sub.unit);
+                        let weekEndLabel = this.formatUnitLabel(Math.min(sub.startNum + cycleEndVol, sub.endNum), sub.unit);
 
                         taskHtml = `
                             ${statusBannerHtml}
                             <div style="font-size: 0.75rem; color: #8E8E93; margin-bottom: 8px;">
-                                💡 今週(4日間)の目標: <strong>${weekStartLabel} 〜 ${weekEndLabel}</strong> (1日 ${s_quota}${this.getUnitName(s_unit)})
+                                💡 今週(4日間)の目標: <strong>${weekStartLabel} 〜 ${weekEndLabel}</strong> (1日 ${sub.quota}${this.getUnitName(sub.unit)})
                             </div>
                             <div class="task-detail" style="margin-bottom:4px;"><span>今日の範囲</span> <strong>${displayStart} 〜 ${displayEnd}</strong></div>
                             ${mapHtml}
@@ -904,7 +904,7 @@
                     }
                 }
 
-                let totalVol = sub.totalVol || 1;
+                let totalVol = sub.totalVol;
                 const overallTotal = totalLaps * totalVol;
                 const overallCompleted = ((currentLap - 1) * totalVol) + activeCompletedVol;
                 const overallPct = Math.floor((overallCompleted / overallTotal) * 100);
@@ -1037,7 +1037,7 @@
                 if(!confirm("日付を進めますか？\n（未完了の教材は、自動的にノルマが再計算・増加されます）")) return;
             }
 
-            for(let uid in db.subjects) {
+            for(let uid in db.users) {
                 db.subjects[uid].forEach(sub => {
                     if(!sub.isCompletedToday && sub.cycleDay >= 1 && sub.cycleDay <= 4) {
                         let totalVol = sub.totalVol || 1;
