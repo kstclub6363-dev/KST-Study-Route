@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KST Study Route - Cloud Sync</title>
+    <title>KST Study Route - Sync & Memo</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
     
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -62,7 +62,6 @@
         /* カード共通 */
         .card { background: var(--card-bg); border-radius: 20px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid #F0F0F0; }
         
-        /* 教材カード */
         .subject-card.completed { opacity: 0.8; background: #F4FBf5; border-color: #A5D6A7; }
         .subject-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
         .subject-title { font-weight: 700; font-size: 1.1rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;}
@@ -90,7 +89,7 @@
         .btn-complete.disabled { background: #D1D1D6; box-shadow: none; cursor: not-allowed; }
         .btn-next-step { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,122,255,0.2); margin-top: 10px; }
         .btn-undo { width: 100%; padding: 10px; background: transparent; border: none; color: var(--text-sub); border-radius: 12px; font-weight: 700; font-size: 0.85rem; cursor: pointer; margin-top: 10px; text-decoration: underline; }
-        .btn-add-subject { width: 100%; padding: 16px; background: transparent; border: 2px dashed #C7C7CC; color: #8E8E93; border-radius: 16px; font-weight: 700; font-size: 0.95rem; cursor: pointer; margin-top: 10px; }
+        .btn-add-subject { width: 100%; padding: 16px; background: transparent; border: 2px dashed #C7C7CC; color: #8E8E93; border-radius: 16px; font-weight: 700; font-size: 0.95rem; cursor: pointer; margin-top: 10px; transition: 0.2s; }
 
         /* モーダル */
         .modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 50; padding: 20px; backdrop-filter: blur(3px); }
@@ -119,7 +118,6 @@
         .tab-content.active { display: block; animation: fadeIn 0.3s; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* 読み込み中画面 */
         #loading-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); display: flex; justify-content: center; align-items: center; z-index: 999; font-weight: bold; color: var(--primary); font-size: 1.2rem; }
     </style>
 </head>
@@ -168,11 +166,13 @@
                 <div id="student-subject-list"></div>
                 <button class="btn-add-subject" onclick="App.openSubjectModal('add')">＋ 新しい教材・テスト範囲を追加する</button>
             </div>
+
             <div id="tab-review" class="tab-content">
                 <div class="section-title"><span>🔄 全教科の弱点リスト</span></div>
                 <div style="font-size:0.85rem; color:var(--text-sub); margin-bottom:15px;">※5日目・6日目の復習日に、ここにある問題を自力で解ける状態にします。</div>
                 <div id="review-list-container"></div>
             </div>
+
             <div id="tab-progress" class="tab-content">
                 <div class="section-title"><span>📊 全教科の進捗状況</span></div>
                 <div id="progress-list-container"></div>
@@ -247,7 +247,7 @@
 
 <script>
     // ==========================================
-    // Firebaseの設定（いただいたコードを組み込んでいます！）
+    // Firebaseの設定
     // ==========================================
     const firebaseConfig = {
         apiKey: "AIzaSyDkrj4-YZm8k8OYCiHQ9hXximSi_G0z_ZI",
@@ -267,11 +267,10 @@
     
     // アプリの状態
     let db = { users: {}, subjects: {} };
-    // ログイン状態はローカルストレージで保持
     let currentUser = localStorage.getItem('kst_cloud_user');
     let isInitialized = false;
 
-    // 🌟 リアルタイム同期（Firebaseからデータを受け取る）
+    // 🌟 リアルタイム同期
     database.ref('kst_app_data').on('value', (snapshot) => {
         document.getElementById('loading-screen').style.display = 'none';
         
@@ -297,7 +296,6 @@
             else this.renderStudentUI();
         },
 
-        // 🌟 データをFirebaseに書き込む
         saveDB: function() {
             database.ref('kst_app_data').set(db);
             localStorage.setItem('kst_cloud_user', currentUser);
@@ -435,7 +433,7 @@
                 const quota = this.calculateQuota(total, 0, dateStr, laps, 1);
                 db.subjects[currentUser].push({
                     title: title, unit: unit, startNum: startNum, endNum: endNum, totalVol: total, targetDate: dateStr, laps: laps, currentLap: 1, quota: quota,
-                    completedVol: 0, cycleDay: 1, tri: 0, cross: 0, isCompletedToday: false, history: null, step: 1
+                    completedVol: 0, cycleDay: 1, tri: 0, cross: 0, weakNotes: "", isCompletedToday: false, history: null, step: 1
                 });
             } else {
                 const sub = db.subjects[currentUser][editIndex];
@@ -464,6 +462,9 @@
         },
 
         goToStep2: function(subIndex) {
+            let noteInput = document.getElementById(`weak-notes-${subIndex}`);
+            if(noteInput) db.subjects[currentUser][subIndex].weakNotes = noteInput.value;
+            
             db.subjects[currentUser][subIndex].step = 2;
             this.saveDB();
         },
@@ -476,6 +477,10 @@
             if(sub.isCompletedToday) return;
             sub[type] += change;
             if(sub[type] < 0) sub[type] = 0;
+            this.saveDB();
+        },
+        updateNotes: function(subIndex, value) {
+            db.subjects[currentUser][subIndex].weakNotes = value;
             this.saveDB();
         },
 
@@ -539,11 +544,12 @@
                 if(confirm(msg)) {
                     sub.history = { 
                         completedVol: sub.completedVol, tri: sub.tri, cross: sub.cross, 
-                        step: sub.step, currentLap: sub.currentLap || 1, quota: sub.quota 
+                        step: sub.step, currentLap: sub.currentLap || 1, quota: sub.quota, weakNotes: sub.weakNotes 
                     };
                     sub.isCompletedToday = true;
                     sub.tri = 0;
                     sub.cross = 0;
+                    sub.weakNotes = ""; // 完璧にしたらメモもクリア
                     this.saveDB();
                 }
             }
@@ -561,6 +567,7 @@
                     sub.step = sub.history.step || 1;
                     sub.currentLap = sub.history.currentLap;
                     sub.quota = sub.history.quota;
+                    if(sub.history.weakNotes !== undefined) sub.weakNotes = sub.history.weakNotes;
                 }
                 this.saveDB();
             }
@@ -609,8 +616,17 @@
 
                     const displayStart = this.formatUnitLabel(startNum, sub.unit);
                     const displayEnd = this.formatUnitLabel(endNum, sub.unit);
+                    
+                    // 今週の目標（サイクル開始時から4日分の目標）を計算して表示
+                    let cycleStartVol = Math.max(0, sub.completedVol - (cDay - 1) * sub.quota);
+                    let cycleEndVol = cycleStartVol + (sub.quota * 4) - 1;
+                    let weekStartLabel = this.formatUnitLabel(sub.startNum + cycleStartVol, sub.unit);
+                    let weekEndLabel = this.formatUnitLabel(Math.min(sub.startNum + cycleEndVol, sub.endNum), sub.unit);
 
                     taskHtml = `
+                        <div style="font-size: 0.75rem; color: #8E8E93; margin-bottom: 8px;">
+                            💡 今週(4日間)の目標: <strong>${weekStartLabel} 〜 ${weekEndLabel}</strong> (1日 ${sub.quota}${this.getUnitName(sub.unit)})
+                        </div>
                         <div class="task-detail"><span>今日の範囲</span> <strong>${displayStart} 〜 ${displayEnd}</strong></div>
                         
                         <div style="display: ${step === 1 ? 'block' : 'none'};">
@@ -634,6 +650,10 @@
                                         <button class="btn-step" onclick="App.updateCount(${index}, 'cross', 1)">+</button>
                                     </div>
                                 </div>
+                            </div>
+                            <div style="margin-top: 12px; text-align: left;">
+                                <label style="font-size: 0.8rem; font-weight: bold; color: #555;">📝 任意メモ（どこが△・×だった？）</label>
+                                <input type="text" id="weak-notes-${index}" value="${sub.weakNotes || ''}" onchange="App.updateNotes(${index}, this.value)" placeholder="例: 問4, 問7" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.85rem; margin-top: 4px;">
                             </div>
                             <button class="btn-next-step" onclick="App.goToStep2(${index})">数を記録して「解き直し」へ進む ➡</button>
                         </div>
@@ -687,6 +707,8 @@
 
                 if(sub.tri > 0 || sub.cross > 0) {
                     hasReview = true;
+                    let notesHtml = sub.weakNotes ? `<div style="margin-top:10px; font-size:0.8rem; background:#FFF; padding:8px; border-radius:6px; color:#D32F2F; text-align:left;"><strong>📝 メモ:</strong><br>${sub.weakNotes}</div>` : '';
+                    
                     reviewContainer.innerHTML += `
                         <div class="card" style="border-left: 4px solid var(--warning);">
                             <h4 style="color:var(--text-main); margin-bottom:10px;">${sub.title}</h4>
@@ -694,6 +716,7 @@
                                 <div><span class="badge-tri">△</span><strong style="display:block; margin-top:5px; font-size:1.2rem; color:var(--warning);">${sub.tri}</strong></div>
                                 <div><span class="badge-cross">×</span><strong style="display:block; margin-top:5px; font-size:1.2rem; color:var(--danger);">${sub.cross}</strong></div>
                             </div>
+                            ${notesHtml}
                         </div>
                     `;
                 }
@@ -836,7 +859,9 @@
     };
 
     document.addEventListener('DOMContentLoaded', () => { 
-        // ⚠️ セキュリティルールも忘れずに設定してくださいね！
+        if(firebaseConfig.apiKey === "AIzaSyDkrj4-YZm8k8OYCiHQ9hXximSi_G0z_ZI" && window.location.hostname === "localhost") {
+            console.log("Firebase Init OK");
+        }
     });
 </script>
 </body>
