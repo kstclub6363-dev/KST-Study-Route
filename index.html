@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KST Study Route - Perfect Fix</title>
+    <title>KST Study Route - v30 Clean Start</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
     
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -24,8 +24,6 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        
-        /* 🌟 スマホで下が隠れないように、自然なスクロールに変更 */
         body { font-family: 'Noto Sans JP', sans-serif; background-color: var(--bg-color); color: var(--text-main); -webkit-font-smoothing: antialiased; margin: 0; padding: 0; padding-bottom: 80px; }
         .app-container { max-width: 480px; margin: 0 auto; background-color: var(--bg-color); min-height: 100vh; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.05); position: relative; }
 
@@ -92,18 +90,15 @@
         .btn-next-step { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,122,255,0.2); margin-top: 10px; }
         .btn-undo { width: 100%; padding: 12px; background: transparent; border: 1.5px solid #8E8E93; color: #8E8E93; border-radius: 12px; font-weight: 700; font-size: 0.9rem; cursor: pointer; margin-top: 10px; }
         
-        /* 🌟 教材追加ボタンを一番上にドドンと設置 */
-        .btn-add-subject { width: 100%; padding: 16px; background: #fff; border: 2px dashed var(--primary); color: var(--primary); border-radius: 12px; font-weight: 700; font-size: 1.05rem; cursor: pointer; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; box-shadow: 0 4px 10px rgba(0,122,255,0.1); }
-        .btn-add-subject:active { background: #E3F2FD; }
+        .fab-add { position: fixed; bottom: 85px; right: 20px; width: 60px; height: 60px; background: var(--primary); color: white; border: none; border-radius: 50%; font-size: 30px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,122,255,0.4); cursor: pointer; display: flex; justify-content: center; align-items: center; z-index: 100; transition: transform 0.2s; }
+        .fab-add:active { transform: scale(0.9); }
 
-        /* 進捗バー */
         .progress-box { background: #F8F9FA; padding: 12px; border-radius: 12px; margin-top: 10px; }
         .progress-header { display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: bold; margin-bottom: 6px; color: #555; }
         .progress-bg { background: #E5E5EA; height: 10px; border-radius: 5px; overflow: hidden; margin-bottom: 8px; }
         .progress-fill { background: var(--primary); height: 100%; width: 0%; border-radius: 5px; transition: width 0.5s; }
         .progress-fill.lap { background: #34C759; } 
         
-        /* 7日間サイクルマップ */
         .cycle-map { display: flex; justify-content: space-between; margin-top: 10px; background: #fff; padding: 8px; border-radius: 8px; border: 1px solid #eee; }
         .cycle-dot { flex: 1; text-align: center; font-size: 0.65rem; color: #ccc; font-weight: bold; position: relative; }
         .cycle-dot::before { content: ''; display: block; width: 14px; height: 14px; background: #E5E5EA; border-radius: 50%; margin: 0 auto 4px auto; }
@@ -125,7 +120,7 @@
         .btn-delete { background: #FFEBEE; color: #D32F2F; width: 100%; padding: 12px; border: none; border-radius: 12px; font-weight: bold; margin-top: 15px; cursor: pointer; }
         .btn-delete-student { background: transparent; border: 1px solid #FF3B30; color: #FF3B30; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
 
-        /* 🌟 ボトムナビ (スマホで絶対に隠れないように fixed + bottom:0 に設定) */
+        /* ボトムナビ */
         .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: rgba(255,255,255,0.95); border-top: 1px solid #E5E5EA; display: flex; justify-content: space-around; padding: 12px 0 25px 0; z-index: 1000; backdrop-filter: blur(10px); }
         .nav-item { text-align: center; font-size: 0.7rem; color: var(--text-sub); cursor: pointer; flex: 1; font-weight: 700; transition: 0.2s; }
         .nav-item.active { color: var(--primary); }
@@ -186,11 +181,8 @@
                     </ul>
                 </div>
                 
-                <button class="btn-add-subject" onclick="App.openSubjectModal('add')">
-                    <span style="font-size: 1.4rem;">＋</span> 新しい教材を追加する
-                </button>
-                
                 <div id="student-subject-list"></div>
+                <button class="fab-add" onclick="App.openSubjectModal('add')">＋</button>
             </div>
             
             <div id="tab-review" class="tab-content">
@@ -219,6 +211,7 @@
             <div id="manager-advance-area" style="margin-bottom:15px;"></div>
 
             <div id="manager-student-list"></div>
+            
             <button onclick="App.resetAllData()" style="width:100%; padding:10px; margin-top:30px; background:transparent; border:1px solid #FF3B30; border-radius:12px; color:#FF3B30; font-weight:bold; cursor:pointer;">🗑️ 全データを初期化する</button>
         </div>
     </main>
@@ -274,7 +267,7 @@
 
 <script>
     // ==========================================
-    // Firebaseの設定 (キーはそのまま引き継ぎ)
+    // Firebaseの設定
     // ==========================================
     const firebaseConfig = {
         apiKey: "AIzaSyDkrj4-YZm8k8OYCiHQ9hXximSi_G0z_ZI",
@@ -295,8 +288,8 @@
     let currentUser = localStorage.getItem('kst_cloud_user');
     let isInitialized = false;
 
-    // 前回のデータ（v26）を読み込み
-    database.ref('kst_app_data_v26').on('value', (snapshot) => {
+    // 🌟 新バージョン (v30) への切り替え！クリーンスタート
+    database.ref('kst_app_data_v30').on('value', (snapshot) => {
         document.getElementById('loading-screen').style.display = 'none';
         
         if (snapshot.exists()) {
@@ -324,7 +317,7 @@
         },
 
         saveDB: function() {
-            database.ref('kst_app_data_v26').set(db);
+            database.ref('kst_app_data_v30').set(db);
             localStorage.setItem('kst_cloud_user', currentUser);
         },
 
@@ -402,6 +395,13 @@
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             document.getElementById(`tab-${tabName}`).classList.add('active');
             element.classList.add('active');
+            
+            const fab = document.querySelector('.fab-add');
+            if(tabName === 'today' && currentUser !== 'manager') {
+                fab.style.display = 'flex';
+            } else {
+                fab.style.display = 'none';
+            }
             if(currentUser !== 'manager') this.renderStudentUI();
         },
 
@@ -422,13 +422,10 @@
                 document.getElementById('edit-sub-index').value = index;
                 const sub = db.subjects[currentUser][index];
                 document.getElementById('sub-title').value = sub.title;
-                document.getElementById('sub-unit').value = sub.unit || 'page';
-                
-                // 🌟 古いデータに対する安全な読み込み
-                document.getElementById('sub-start').value = sub.startNum !== undefined ? sub.startNum : 1;
-                document.getElementById('sub-end').value = sub.endNum !== undefined ? sub.endNum : (sub.totalVol || 1);
-                
-                document.getElementById('sub-laps').value = sub.laps || 1;
+                document.getElementById('sub-unit').value = sub.unit;
+                document.getElementById('sub-start').value = sub.startNum;
+                document.getElementById('sub-end').value = sub.endNum;
+                document.getElementById('sub-laps').value = sub.laps;
                 document.getElementById('sub-date').value = sub.targetDate;
                 document.getElementById('btn-delete-sub').style.display = 'block';
             }
@@ -489,7 +486,7 @@
                 sub.targetDate = dateStr;
                 sub.laps = laps;
                 if(sub.completedVol > total) sub.completedVol = total;
-                sub.quota = this.calculateQuota(total, sub.completedVol, dateStr, sub.laps, sub.currentLap || 1);
+                sub.quota = this.calculateQuota(total, sub.completedVol, dateStr, sub.laps, sub.currentLap);
             }
 
             this.saveDB();
@@ -528,7 +525,6 @@
         },
 
         formatUnitLabel: function(num, unitType) {
-            if (isNaN(num)) return "-"; // 🌟 古いデータ防御
             if (unitType === 'page') return `P${num}`;
             if (unitType === 'question') return `問${num}`;
             if (unitType === 'chapter') return `第${num}章`;
@@ -545,29 +541,23 @@
             let sub = db.subjects[currentUser][subIndex];
             if(sub.isCompletedToday) return;
 
-            // 🌟 古いデータのための安全な初期化
-            let s_start = sub.startNum !== undefined ? sub.startNum : 1;
-            let s_end = sub.endNum !== undefined ? sub.endNum : (sub.totalVol || 1);
-            let s_unit = sub.unit || 'none';
-            let s_quota = sub.quota || 1;
-
             let isAdvance = (sub.cycleDay >= 1 && sub.cycleDay <= 4);
             let isTest = (sub.cycleDay === 7);
             
-            let startNum = s_start + sub.completedVol;
-            let endNum = Math.min(startNum + s_quota - 1, s_end);
-            let cycleStartVol = Math.max(0, sub.completedVol - (sub.cycleDay - 1) * s_quota);
-            let cycleEndVol = cycleStartVol + (s_quota * 4) - 1;
+            let startNum = sub.startNum + sub.completedVol;
+            let endNum = Math.min(startNum + sub.quota - 1, sub.endNum);
+            let cycleStartVol = Math.max(0, sub.completedVol - (sub.cycleDay - 1) * sub.quota);
+            let cycleEndVol = cycleStartVol + (sub.quota * 4) - 1;
             
-            let displayStart = this.formatUnitLabel(startNum, s_unit);
-            let displayEnd = this.formatUnitLabel(endNum, s_unit);
-            let weekStartLabel = this.formatUnitLabel(s_start + cycleStartVol, s_unit);
-            let weekEndLabel = this.formatUnitLabel(Math.min(s_start + cycleEndVol, s_end), s_unit);
+            let displayStart = this.formatUnitLabel(startNum, sub.unit);
+            let displayEnd = this.formatUnitLabel(endNum, sub.unit);
+            let weekStartLabel = this.formatUnitLabel(sub.startNum + cycleStartVol, sub.unit);
+            let weekEndLabel = this.formatUnitLabel(Math.min(sub.startNum + cycleEndVol, sub.endNum), sub.unit);
 
             if (isAdvance) {
-                let currentStart = s_start + sub.completedVol;
-                let defaultEnd = Math.min(currentStart + s_quota - 1, s_end);
-                let unitName = this.getUnitName(s_unit);
+                let currentStart = sub.startNum + sub.completedVol;
+                let defaultEnd = Math.min(currentStart + sub.quota - 1, sub.endNum);
+                let unitName = this.getUnitName(sub.unit);
                 
                 let msg = `【最終確認】\n印をつけた問題以外は、すべて自力で解ける(○)状態になりましたか？\n\n今日完璧にした最後の「${unitName}」を数字で入力してください。`;
                 
@@ -575,19 +565,19 @@
                 if (input === null) return; 
                 
                 let newEndNum = parseInt(input);
-                if (isNaN(newEndNum) || newEndNum < (currentStart - 1) || newEndNum > s_end) {
+                if (isNaN(newEndNum) || newEndNum < (currentStart - 1) || newEndNum > sub.endNum) {
                     alert(`正しい数値を入力してください。`);
                     return;
                 }
                 
                 sub.history = { 
                     completedVol: sub.completedVol, tri: sub.tri, cross: sub.cross, 
-                    step: sub.step || 1, currentLap: sub.currentLap || 1, quota: s_quota, 
+                    step: sub.step, currentLap: sub.currentLap, quota: sub.quota, 
                     completedAt: sub.completedAt || "",
                     weakStock: sub.weakStock ? JSON.parse(JSON.stringify(sub.weakStock)) : []
                 };
                 
-                let actualEndLabel = this.formatUnitLabel(newEndNum, s_unit);
+                let actualEndLabel = this.formatUnitLabel(newEndNum, sub.unit);
                 sub.lastCompletedRangeText = displayStart + " 〜 " + actualEndLabel;
                 sub.lastCompletedWeekGoalText = weekStartLabel + " 〜 " + weekEndLabel;
                 sub.completedAt = this.getNowTimeString();
@@ -608,16 +598,14 @@
                 }
                 
                 sub.isCompletedToday = true;
-                sub.completedVol = Math.max(sub.completedVol, newEndNum - s_start + 1);
+                sub.completedVol = Math.max(sub.completedVol, newEndNum - sub.startNum + 1);
                 
-                let totalVol = sub.totalVol || 1;
-                if(sub.completedVol >= totalVol) {
-                    sub.completedVol = totalVol;
-                    const totalLaps = sub.laps || 1;
-                    if ((sub.currentLap || 1) < totalLaps) {
-                        sub.currentLap = (sub.currentLap || 1) + 1;
+                if(sub.completedVol >= sub.totalVol) {
+                    sub.completedVol = sub.totalVol;
+                    if (sub.currentLap < sub.laps) {
+                        sub.currentLap += 1;
                         sub.completedVol = 0; 
-                        sub.quota = this.calculateQuota(totalVol, sub.completedVol, sub.targetDate, totalLaps, sub.currentLap);
+                        sub.quota = this.calculateQuota(sub.totalVol, sub.completedVol, sub.targetDate, sub.laps, sub.currentLap);
                         alert(`🎉 おめでとうございます！\n「${sub.title}」の ${sub.currentLap - 1}周目が完了しました！\n次は ${sub.currentLap}周目 に突入します！`);
                     }
                 }
@@ -628,7 +616,7 @@
                 if(confirm(msg)) {
                     sub.history = { 
                         completedVol: sub.completedVol, tri: sub.tri, cross: sub.cross, 
-                        step: sub.step || 1, currentLap: sub.currentLap || 1, quota: s_quota, 
+                        step: sub.step, currentLap: sub.currentLap, quota: sub.quota, 
                         weakNotes: sub.weakNotes || "", completedAt: sub.completedAt || "",
                         weakStock: sub.weakStock ? JSON.parse(JSON.stringify(sub.weakStock)) : []
                     };
@@ -643,7 +631,7 @@
                 if(confirm(msg)) {
                     sub.history = { 
                         completedVol: sub.completedVol, tri: sub.tri, cross: sub.cross, 
-                        step: sub.step || 1, currentLap: sub.currentLap || 1, quota: s_quota, 
+                        step: sub.step, currentLap: sub.currentLap, quota: sub.quota, 
                         weakNotes: sub.weakNotes || "", completedAt: sub.completedAt || "",
                         weakStock: sub.weakStock ? JSON.parse(JSON.stringify(sub.weakStock)) : []
                     };
@@ -672,7 +660,7 @@
                     sub.completedVol = sub.history.completedVol;
                     sub.tri = sub.history.tri;
                     sub.cross = sub.history.cross;
-                    sub.step = sub.history.step || 1;
+                    sub.step = sub.history.step;
                     sub.currentLap = sub.history.currentLap;
                     sub.quota = sub.history.quota;
                     sub.completedAt = sub.history.completedAt || "";
@@ -701,7 +689,7 @@
 
             const subjects = db.subjects[currentUser] || [];
             if(subjects.length === 0) {
-                listContainer.innerHTML = '<p style="text-align:center; color:var(--text-sub); padding:40px 0; font-size:0.9rem;">まだ教材がありません。<br>上のボタンから追加してください。</p>';
+                listContainer.innerHTML = '<p style="text-align:center; color:var(--text-sub); padding:40px 0; font-size:0.9rem;">まだ教材がありません。<br>右下の ＋ ボタンから追加してください。</p>';
                 reviewContainer.innerHTML = '<p style="text-align:center; color:var(--text-sub); padding:40px 0;">教材がありません。</p>';
                 progressContainer.innerHTML = '<p style="text-align:center; color:var(--text-sub); padding:40px 0;">教材がありません。</p>';
                 return;
@@ -710,17 +698,6 @@
             let globalHasReview = false;
 
             subjects.forEach((sub, index) => {
-                // 🌟 古いデータが混ざっていても絶対にエラーで止めないための補完
-                if (sub.startNum === undefined) sub.startNum = 1;
-                if (sub.endNum === undefined) sub.endNum = sub.totalVol || 1;
-                if (sub.unit === undefined) sub.unit = 'page';
-                if (sub.laps === undefined) sub.laps = 1;
-                if (sub.currentLap === undefined) sub.currentLap = 1;
-                if (sub.quota === undefined) sub.quota = 1;
-                if (sub.completedVol === undefined) sub.completedVol = 0;
-                if (sub.cycleDay === undefined) sub.cycleDay = 1;
-                if (sub.totalVol === undefined) sub.totalVol = 1;
-
                 const cDay = sub.cycleDay;
                 let isAdvance = (cDay >= 1 && cDay <= 4);
                 let isTest = (cDay === 7);
@@ -738,7 +715,7 @@
                 const totalLaps = sub.laps;
                 const lapBadge = `<span class="lap-badge">${currentLap}周目 / ${totalLaps}周</span>`;
 
-                let activeCompletedVol = sub.isCompletedToday && sub.history ? (sub.history.completedVol || 0) : sub.completedVol;
+                let activeCompletedVol = sub.isCompletedToday && sub.history ? sub.history.completedVol : sub.completedVol;
 
                 let mapHtml = `<div class="cycle-map">`;
                 for(let i=1; i<=7; i++) {
@@ -795,7 +772,7 @@
                     if(isAdvance) {
                         const startNum = sub.startNum + activeCompletedVol;
                         const endNum = Math.min(startNum + sub.quota - 1, sub.endNum);
-                        const step = sub.step || 1;
+                        const step = sub.step;
 
                         const displayStart = this.formatUnitLabel(startNum, sub.unit);
                         const displayEnd = this.formatUnitLabel(endNum, sub.unit);
@@ -820,7 +797,7 @@
                                         <div class="counter-label"><span class="badge-tri">△</span> 説明不可</div>
                                         <div class="stepper">
                                             <button class="btn-step" onclick="App.updateCount(${index}, 'tri', -1)">-</button>
-                                            <div class="count-val">${sub.tri || 0}</div>
+                                            <div class="count-val">${sub.tri}</div>
                                             <button class="btn-step" onclick="App.updateCount(${index}, 'tri', 1)">+</button>
                                         </div>
                                     </div>
@@ -828,7 +805,7 @@
                                         <div class="counter-label"><span class="badge-cross">×</span> 解けない</div>
                                         <div class="stepper">
                                             <button class="btn-step" onclick="App.updateCount(${index}, 'cross', -1)">-</button>
-                                            <div class="count-val">${sub.cross || 0}</div>
+                                            <div class="count-val">${sub.cross}</div>
                                             <button class="btn-step" onclick="App.updateCount(${index}, 'cross', 1)">+</button>
                                         </div>
                                     </div>
@@ -867,7 +844,7 @@
                 let btnHtml = '';
                 if(sub.isCompletedToday) {
                     btnHtml = `<button class="btn-undo" onclick="App.undoComplete(${index})">🔄 完了を取り消して修正する</button>`;
-                } else if (isAdvance && (sub.step || 1) === 1) {
+                } else if (isAdvance && sub.step === 1) {
                     btnHtml = ''; 
                 } else {
                     btnHtml = `<button class="btn-complete" onclick="App.completeSubject(${index})">✅ 完璧(○)になったので完了！</button>`;
@@ -904,11 +881,10 @@
                     }
                 }
 
-                let totalVol = sub.totalVol;
-                const overallTotal = totalLaps * totalVol;
-                const overallCompleted = ((currentLap - 1) * totalVol) + activeCompletedVol;
+                const overallTotal = totalLaps * sub.totalVol;
+                const overallCompleted = ((currentLap - 1) * sub.totalVol) + activeCompletedVol;
                 const overallPct = Math.floor((overallCompleted / overallTotal) * 100);
-                const currentLapPct = Math.floor((activeCompletedVol / totalVol) * 100);
+                const currentLapPct = Math.floor((activeCompletedVol / sub.totalVol) * 100);
                 
                 const targetDate = new Date(sub.targetDate);
                 const today = new Date();
@@ -924,7 +900,7 @@
                         <div class="progress-box">
                             <div class="progress-header" style="color:var(--primary);"><span>${currentLap}周目の進捗</span><span>${currentLapPct}%</span></div>
                             <div class="progress-bg"><div class="progress-fill lap" style="width:${currentLapPct}%;"></div></div>
-                            <div style="text-align:right; font-size:0.75rem; color:var(--text-sub); margin-bottom:10px;">${activeCompletedVol} / ${totalVol} 完了</div>
+                            <div style="text-align:right; font-size:0.75rem; color:var(--text-sub); margin-bottom:10px;">${activeCompletedVol} / ${sub.totalVol} 完了</div>
                             <div class="progress-header"><span>全体（${totalLaps}周）の進捗</span><span>${overallPct}%</span></div>
                             <div class="progress-bg" style="height:6px;"><div class="progress-fill" style="width:${overallPct}%;"></div></div>
                         </div>
@@ -985,9 +961,8 @@
                 } else {
                     subjects.forEach(sub => {
                         let statusIcon = sub.isCompletedToday ? "✅" : "✏️";
-                        let activeProgressVol = sub.isCompletedToday && sub.history ? (sub.history.completedVol || 0) : (sub.completedVol || 0);
-                        let totalVol = sub.totalVol || 1;
-                        const percent = Math.floor((((sub.currentLap || 1) - 1) * totalVol + activeProgressVol) / ((sub.laps || 1) * totalVol) * 100);
+                        let activeProgressVol = sub.isCompletedToday && sub.history ? sub.history.completedVol : sub.completedVol;
+                        const percent = Math.floor((((sub.currentLap || 1) - 1) * sub.totalVol + activeProgressVol) / (sub.laps * sub.totalVol) * 100);
                         
                         let stockTri = sub.tri || 0;
                         let stockCross = sub.cross || 0;
@@ -1004,7 +979,7 @@
                             <div style="margin-bottom:8px; background:#F8F9FA; padding:10px; border-radius:8px;">
                                 <div style="display:flex; justify-content:space-between; align-items:center;">
                                     <div style="font-weight:700; color:var(--manager); font-size:0.9rem;">
-                                        ${statusIcon} ${sub.title} <span style="font-size:0.7rem; font-weight:normal; color:#666;">(${sub.currentLap || 1}/${sub.laps || 1}周・Day${sub.cycleDay})</span>
+                                        ${statusIcon} ${sub.title} <span style="font-size:0.7rem; font-weight:normal; color:#666;">(${sub.currentLap}/${sub.laps}周・Day${sub.cycleDay})</span>
                                     </div>
                                     <div style="font-size:0.8rem; font-weight:bold;">
                                         <span style="color:var(--danger); margin-right:8px;">弱点ストック:${stockTri + stockCross}</span>
@@ -1037,11 +1012,10 @@
                 if(!confirm("日付を進めますか？\n（未完了の教材は、自動的にノルマが再計算・増加されます）")) return;
             }
 
-            for(let uid in db.users) {
+            for(let uid in db.subjects) {
                 db.subjects[uid].forEach(sub => {
                     if(!sub.isCompletedToday && sub.cycleDay >= 1 && sub.cycleDay <= 4) {
-                        let totalVol = sub.totalVol || 1;
-                        sub.quota = this.calculateQuota(totalVol, sub.completedVol, sub.targetDate, sub.laps || 1, sub.currentLap || 1);
+                        sub.quota = this.calculateQuota(sub.totalVol, sub.completedVol, sub.targetDate, sub.laps, sub.currentLap);
                     }
                     
                     sub.tri = 0;
@@ -1063,6 +1037,18 @@
             db.lastAdvancedDate = todayStr;
             this.saveDB();
             this.refreshUI();
+        },
+
+        // 🌟 初期化バグ修正
+        resetAllData: function() {
+            if(confirm("【警告】すべてのデータを完全に消去しますか？")) {
+                database.ref('kst_app_data_v30').remove().then(() => {
+                    localStorage.removeItem('kst_cloud_user');
+                    location.reload();
+                }).catch(error => {
+                    alert("データの初期化に失敗しました: " + error);
+                });
+            }
         }
     };
 
