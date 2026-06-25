@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KST Study Route - Core Rules Version</title>
+    <title>KST Study Route - Final Fix</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
     
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -53,7 +53,6 @@
         .main-content { flex: 1; overflow-y: auto; padding: 20px; }
         .section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end; color: #1c1c1e; }
         
-        /* 🌟 ガイドパネル（常時表示用・少しコンパクトに） */
         .guide-panel { background: #E8F4FD; border-radius: 16px; padding: 16px; margin-bottom: 20px; border: 2px solid #BBDEFB; }
         .guide-panel h3 { color: #1976D2; font-size: 1rem; margin-bottom: 10px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
         .guide-panel ul { padding-left: 0; font-size: 0.8rem; color: #444; line-height: 1.5; list-style-type: none; margin: 0;}
@@ -70,7 +69,6 @@
         .lap-badge { font-size: 0.75rem; background: #E5E5EA; color: #333; padding: 2px 8px; border-radius: 8px; font-weight: 700; }
         .btn-edit { background: none; border: none; color: var(--text-sub); font-size: 1rem; cursor: pointer; }
         
-        /* 🌟 「今日は何の日？」バナー */
         .status-banner { padding: 10px; border-radius: 10px; font-weight: 700; font-size: 0.9rem; margin-bottom: 12px; text-align: center; }
         .status-banner.advance { background: #E3F2FD; color: #1976D2; border: 1px solid #BBDEFB; }
         .status-banner.review { background: #FFF3E0; color: #F57C00; border: 1px solid #FFE0B2; }
@@ -92,7 +90,6 @@
         .btn-next-step { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,122,255,0.2); margin-top: 10px; }
         .btn-undo { width: 100%; padding: 12px; background: transparent; border: 1.5px solid #8E8E93; color: #8E8E93; border-radius: 12px; font-weight: 700; font-size: 0.9rem; cursor: pointer; margin-top: 10px; }
         
-        /* 🌟 右下フローティング追加ボタン */
         .fab-add { position: fixed; bottom: 85px; right: 20px; width: 60px; height: 60px; background: var(--primary); color: white; border: none; border-radius: 50%; font-size: 30px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,122,255,0.4); cursor: pointer; display: flex; justify-content: center; align-items: center; z-index: 100; transition: transform 0.2s; }
         .fab-add:active { transform: scale(0.9); }
 
@@ -114,7 +111,7 @@
         .cycle-dot.test.active { color: #7B1FA2; }
         .cycle-dot.test.active::before { background: #7B1FA2; box-shadow: 0 0 5px rgba(123,31,162,0.5); }
 
-        /* モーダル共通 */
+        /* モーダル */
         .modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 500; padding: 20px; backdrop-filter: blur(3px); }
         .modal.active { display: flex; }
         .modal-content { background: var(--card-bg); width: 100%; border-radius: 20px; padding: 24px; max-height: 90vh; overflow-y: auto; }
@@ -123,7 +120,6 @@
         .btn-cancel { background: #F2F2F7; color: var(--text-main); }
         .btn-submit { background: var(--primary); color: white; }
         .btn-delete { background: #FFEBEE; color: #D32F2F; width: 100%; padding: 12px; border: none; border-radius: 12px; font-weight: bold; margin-top: 15px; cursor: pointer; }
-        .btn-delete-student { background: transparent; border: 1px solid #FF3B30; color: #FF3B30; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
 
         /* ボトムナビ */
         .bottom-nav { width: 100%; background: #fff; border-top: 1px solid #E5E5EA; display: flex; justify-content: space-around; padding: 12px 0 20px 0; z-index: 10; flex-shrink: 0; margin-top: auto; }
@@ -272,7 +268,7 @@
 
 <script>
     // ==========================================
-    // Firebaseの設定 (キーはv26のまま引き継ぎ)
+    // Firebaseの設定
     // ==========================================
     const firebaseConfig = {
         apiKey: "AIzaSyDkrj4-YZm8k8OYCiHQ9hXximSi_G0z_ZI",
@@ -293,17 +289,14 @@
     let currentUser = localStorage.getItem('kst_cloud_user');
     let isInitialized = false;
 
-    // 前回のデータ（v26）をそのまま引き継ぐ
     database.ref('kst_app_data_v26').on('value', (snapshot) => {
         document.getElementById('loading-screen').style.display = 'none';
-        
         if (snapshot.exists()) {
             db = snapshot.val();
             if (!db.users) db.users = {};
             if (!db.subjects) db.subjects = {};
             if (!db.lastAdvancedDate) db.lastAdvancedDate = "";
         }
-
         if (!isInitialized) {
             App.init(); 
             isInitialized = true;
@@ -401,14 +394,12 @@
             document.getElementById(`tab-${tabName}`).classList.add('active');
             element.classList.add('active');
             
-            // FABボタンの表示制御（今日タブの時だけ表示）
             const fab = document.querySelector('.fab-add');
             if(tabName === 'today' && currentUser !== 'manager') {
                 fab.style.display = 'flex';
             } else {
                 fab.style.display = 'none';
             }
-            
             if(currentUser !== 'manager') this.renderStudentUI();
         },
 
@@ -498,6 +489,7 @@
 
             this.saveDB();
             this.closeSubjectModal();
+            this.refreshUI(); // 🌟 保存直後に確実にUIを更新
         },
 
         deleteSubject: function() {
@@ -506,6 +498,7 @@
                 db.subjects[currentUser].splice(editIndex, 1);
                 this.saveDB();
                 this.closeSubjectModal();
+                this.refreshUI(); // 🌟 削除直後に確実にUIを更新
             }
         },
 
@@ -514,10 +507,12 @@
             if(noteInput) db.subjects[currentUser][subIndex].weakNotes = noteInput.value;
             db.subjects[currentUser][subIndex].step = 2;
             this.saveDB();
+            this.refreshUI();
         },
         backToStep1: function(subIndex) {
             db.subjects[currentUser][subIndex].step = 1;
             this.saveDB();
+            this.refreshUI();
         },
         updateCount: function(subIndex, type, change) {
             let sub = db.subjects[currentUser][subIndex];
@@ -525,6 +520,7 @@
             sub[type] += change;
             if(sub[type] < 0) sub[type] = 0;
             this.saveDB();
+            this.refreshUI();
         },
         updateNotes: function(subIndex, value) {
             db.subjects[currentUser][subIndex].weakNotes = value;
@@ -618,6 +614,7 @@
                     }
                 }
                 this.saveDB();
+                this.refreshUI();
 
             } else if (isTest) {
                 let msg = `【最終確認】\n今週の範囲の確認テストは完璧でしたか？\n(はいを押すと来週のサイクルに進む準備が完了します)`;
@@ -633,6 +630,7 @@
                     sub.completedAt = this.getNowTimeString();
                     sub.isCompletedToday = true;
                     this.saveDB();
+                    this.refreshUI();
                 }
             } else {
                 let msg = `【最終確認】\n復習対象の問題はすべて完璧(○)になりましたか？\n(はいを押すと、今週の弱点ストックがリセットされます)`;
@@ -652,6 +650,7 @@
                     sub.weakNotes = ""; 
                     sub.weakStock = []; 
                     this.saveDB();
+                    this.refreshUI();
                 }
             }
         },
@@ -676,6 +675,7 @@
                     if(sub.history.weakStock) sub.weakStock = sub.history.weakStock;
                 }
                 this.saveDB();
+                this.refreshUI();
             }
         },
 
@@ -710,7 +710,6 @@
                 let isAdvance = (cDay >= 1 && cDay <= 4);
                 let isTest = (cDay === 7);
                 
-                // 🌟 カード上部に「今日は何の日？」バナーを生成
                 let statusBannerHtml = '';
                 if(isAdvance) {
                     statusBannerHtml = `<div class="status-banner advance">🚀 今日は「進める日」です（Day ${cDay}/4）</div>`;
@@ -926,6 +925,7 @@
             db.users[uid] = { name: name, pass: pass };
             db.subjects[uid] = [];
             this.saveDB();
+            this.refreshUI();
             alert(`${name} さんのアカウントを作成しました。`);
         },
 
@@ -934,6 +934,7 @@
                 delete db.users[uid];
                 delete db.subjects[uid];
                 this.saveDB();
+                this.refreshUI();
             }
         },
 
@@ -1039,6 +1040,7 @@
             }
             db.lastAdvancedDate = todayStr;
             this.saveDB();
+            this.refreshUI();
         }
     };
 
