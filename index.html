@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KST Study Route - Perfect Version</title>
+    <title>KST Study Route - UI Improved</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
     
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -24,17 +24,19 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        /* 🌟 スマホで下が隠れないように 100dvh を使用 */
         body { font-family: 'Noto Sans JP', sans-serif; background-color: var(--bg-color); color: var(--text-main); -webkit-font-smoothing: antialiased; }
-        .app-container { max-width: 480px; margin: 0 auto; background-color: var(--bg-color); height: 100vh; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.05); position: relative; overflow: hidden; }
+        .app-container { max-width: 480px; margin: 0 auto; background-color: var(--bg-color); height: 100vh; height: 100dvh; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.05); position: relative; overflow: hidden; }
 
         /* ヘッダー */
-        .header { background: var(--primary-grad); color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; transition: 0.3s; z-index: 10; box-shadow: 0 4px 12px rgba(0,122,255,0.2); }
+        .header { background: var(--primary-grad); color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; transition: 0.3s; z-index: 10; box-shadow: 0 4px 12px rgba(0,122,255,0.2); flex-shrink: 0; }
         .header.manager-mode { background: #2C3E50; box-shadow: 0 4px 12px rgba(44,62,80,0.2); }
         .header h1 { font-size: 1.2rem; font-weight: 700; }
         .btn-logout { background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; cursor: pointer; backdrop-filter: blur(4px); }
 
         /* カレンダー日付表示バー */
-        .date-bar { background: #FFFFFF; padding: 8px 20px; font-size: 0.85rem; font-weight: 700; color: #555; border-bottom: 1px solid #E5E5EA; display: flex; justify-content: space-between; align-items: center; }
+        .date-bar { background: #FFFFFF; padding: 8px 20px; font-size: 0.85rem; font-weight: 700; color: #555; border-bottom: 1px solid #E5E5EA; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
 
         /* ログイン画面 */
         .login-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary-grad); display: flex; justify-content: center; align-items: center; z-index: 100; flex-direction: column; padding: 20px; }
@@ -51,7 +53,7 @@
         .btn-login.manager { background: var(--manager); }
 
         /* メインエリア */
-        .main-content { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 100px; }
+        .main-content { flex: 1; overflow-y: auto; padding: 20px; }
         .section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end; color: #1c1c1e; }
         
         /* ガイドパネル */
@@ -92,6 +94,21 @@
         .btn-complete.disabled { background: #D1D1D6; box-shadow: none; cursor: not-allowed; }
         .btn-next-step { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,122,255,0.2); margin-top: 10px; }
         .btn-undo { width: 100%; padding: 12px; background: transparent; border: 1.5px solid #8E8E93; color: #8E8E93; border-radius: 12px; font-weight: 700; font-size: 0.9rem; cursor: pointer; margin-top: 10px; }
+        
+        /* 🌟 教材追加ボタンを上に固定＆目立たせる */
+        .btn-add-subject { width: 100%; padding: 16px; background: #fff; border: 2px dashed var(--primary); color: var(--primary); border-radius: 16px; font-weight: 700; font-size: 1rem; cursor: pointer; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
+        .btn-add-subject:active { background: #E3F2FD; }
+
+        /* モーダル */
+        .modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 50; padding: 20px; backdrop-filter: blur(3px); }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--card-bg); width: 100%; border-radius: 20px; padding: 24px; max-height: 90vh; overflow-y: auto; }
+        .modal-actions { display: flex; gap: 12px; margin-top: 20px; }
+        .btn-cancel, .btn-submit { flex: 1; padding: 14px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; }
+        .btn-cancel { background: #F2F2F7; color: var(--text-main); }
+        .btn-submit { background: var(--primary); color: white; }
+        .btn-delete { background: #FFEBEE; color: #D32F2F; width: 100%; padding: 12px; border: none; border-radius: 12px; font-weight: bold; margin-top: 15px; cursor: pointer; }
+        .btn-delete-student { background: transparent; border: 1px solid #FF3B30; color: #FF3B30; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
 
         /* プログレスバー */
         .progress-box { background: #F8F9FA; padding: 12px; border-radius: 12px; margin-top: 10px; }
@@ -99,8 +116,8 @@
         .progress-bg { background: #E5E5EA; height: 10px; border-radius: 5px; overflow: hidden; }
         .progress-fill { background: var(--primary); height: 100%; width: 0%; border-radius: 5px; transition: width 0.5s; }
 
-        /* ボトムナビ */
-        .bottom-nav { position: absolute; bottom: 0; width: 100%; background: rgba(255,255,255,0.95); border-top: 1px solid #E5E5EA; display: flex; justify-content: space-around; padding: 10px 0 20px 0; z-index: 10; backdrop-filter: blur(10px); }
+        /* 🌟 ボトムナビの絶対位置を解除し、フレックスボックスで一番下に固定 */
+        .bottom-nav { width: 100%; background: #fff; border-top: 1px solid #E5E5EA; display: flex; justify-content: space-around; padding: 12px 0 20px 0; z-index: 10; flex-shrink: 0; margin-top: auto; }
         .nav-item { text-align: center; font-size: 0.7rem; color: var(--text-sub); cursor: pointer; flex: 1; font-weight: 700; transition: 0.2s; }
         .nav-item.active { color: var(--primary); }
         .nav-icon { font-size: 1.4rem; display: block; margin-bottom: 2px; }
@@ -159,14 +176,20 @@
                         <li><strong>👑 ④ 最低3周で「凄さ」を実感する！</strong><span>1周目は自分の弱点と向き合うので一番時間がかかってしんどいです。でも、1周目をクリアした後の2周目、3周目で<b>「一瞬で思い出せる！」という圧倒的な成長とこのシステムの凄さを実感</b>できます。まずは1周目を乗り越えよう！</span></li>
                     </ul>
                 </div>
+                
+                <button class="btn-add-subject" onclick="App.openSubjectModal('add')">
+                    <span style="font-size: 1.4rem;">＋</span> 新しい教材を追加する
+                </button>
+
                 <div id="student-subject-list"></div>
-                <button class="btn-add-subject" onclick="App.openSubjectModal('add')">＋ 新しい教材・テスト範囲を追加する</button>
             </div>
+            
             <div id="tab-review" class="tab-content">
                 <div class="section-title"><span>🔄 全教科の弱点リスト</span></div>
                 <div style="font-size:0.85rem; color:var(--text-sub); margin-bottom:15px;">※5日目・6日目の復習日に、ここにある問題を自力で解ける状態にします。</div>
                 <div id="review-list-container"></div>
             </div>
+            
             <div id="tab-progress" class="tab-content">
                 <div class="section-title"><span>📊 全教科の進捗状況</span></div>
                 <div id="progress-list-container"></div>
@@ -263,7 +286,7 @@
     let currentUser = localStorage.getItem('kst_cloud_user');
     let isInitialized = false;
 
-    // 🌟 リアルタイム同期 (v24: タイムスタンプ対応版)
+    // 前回のデータ（v24）をそのまま引き継ぐ
     database.ref('kst_app_data_v24').on('value', (snapshot) => {
         document.getElementById('loading-screen').style.display = 'none';
         
@@ -305,7 +328,6 @@
             }
         },
 
-        // リアルタイム日付表示ヘルパー
         updateLiveDateDisplay: function() {
             const d = new Date();
             const dayList = ["日", "月", "火", "水", "木", "金", "土"];
@@ -313,7 +335,6 @@
             document.getElementById('live-date-display').innerText = dateText;
         },
 
-        // クラウド刻印用タイムスタンプ生成ヘルパー
         getNowTimeString: function() {
             const d = new Date();
             const min = String(d.getMinutes()).padStart(2, '0');
@@ -527,14 +548,14 @@
                 let defaultEnd = Math.min(currentStart + sub.quota - 1, sub.endNum);
                 let unitName = this.getUnitName(sub.unit);
                 
-                let msg = `【最終確認】\n印をつけた問題以外は、すべて自力で解ける(○)状態になりましたか？\n\n今日完璧にした最後の「${unitName}」を数字で入力してください。`;
+                let msg = `【最終確認】\n印をつけた問題以外は、すべて自力で解ける(○)状態になりましたか？\n\n今日完璧にした最後の「${unitName}」を数字で入力してください。\n（※途中で終わった場合は、その数字を入れてください）`;
                 
                 let input = prompt(msg, defaultEnd);
                 if (input === null) return; 
                 
                 let newEndNum = parseInt(input);
                 if (isNaN(newEndNum) || newEndNum < (currentStart - 1) || newEndNum > sub.endNum) {
-                    alert(`正しい数値を入力してください。`);
+                    alert(`正しい数値を入力してください。（${currentStart} 〜 ${sub.endNum}の範囲）`);
                     return;
                 }
                 
@@ -547,7 +568,6 @@
                 sub.lastCompletedRangeText = displayStart + " 〜 " + actualEndLabel;
                 sub.lastCompletedWeekGoalText = weekStartLabel + " 〜 " + weekEndLabel;
                 
-                // 🌟【新機能】クラウドリアルタイム刻印
                 sub.completedAt = this.getNowTimeString();
                 sub.isCompletedToday = true;
                 sub.completedVol = Math.max(sub.completedVol, newEndNum - sub.startNum + 1);
@@ -559,7 +579,7 @@
                         sub.currentLap = (sub.currentLap || 1) + 1;
                         sub.completedVol = 0; 
                         sub.quota = this.calculateQuota(sub.totalVol, sub.completedVol, sub.targetDate, totalLaps, sub.currentLap);
-                        alert(`🎉 おめでとうございます！\n「${sub.title}」の ${sub.currentLap - 1}周目が完了しました！\n次は ${sub.currentLap}周目 に突入します！`);
+                        alert(`🎉 おめでとうございます！\n「${sub.title}」の ${sub.currentLap - 1}周目が完了しました！\n次回からはペースを上げて ${sub.currentLap}周目 に突入します！`);
                     }
                 }
                 this.saveDB();
@@ -575,7 +595,6 @@
                     sub.lastCompletedRangeText = "今週の弱点を総復習";
                     sub.lastCompletedWeekGoalText = "弱点ストックの解消";
                     
-                    // 🌟【新機能】クラウドリアルタイム刻印
                     sub.completedAt = this.getNowTimeString();
                     sub.isCompletedToday = true;
                     sub.tri = 0;
@@ -620,13 +639,16 @@
             const reviewContainer = document.getElementById('review-list-container');
             const progressContainer = document.getElementById('progress-list-container');
             
+            // 🌟 リセットする前に、ボタンより下を消す処理に変更（ボタンはHTML直書きしたため不要）
             listContainer.innerHTML = '';
             reviewContainer.innerHTML = '';
             progressContainer.innerHTML = '';
 
             const subjects = db.subjects[currentUser] || [];
             if(subjects.length === 0) {
-                listContainer.innerHTML = '<p style="text-align:center; color:var(--text-sub); padding:20px 0;">まだ教材がありません。</p>';
+                listContainer.innerHTML = '<p style="text-align:center; color:var(--text-sub); padding:20px 0;">まだ教材がありません。<br>上のボタンから追加してください。</p>';
+                reviewContainer.innerHTML = '<p style="text-align:center; color:var(--text-sub); padding:20px 0;">教材がありません。</p>';
+                progressContainer.innerHTML = '<p style="text-align:center; color:var(--text-sub); padding:20px 0;">教材がありません。</p>';
                 return;
             }
 
@@ -640,8 +662,6 @@
                 const currentLap = sub.currentLap || 1;
                 const totalLaps = sub.laps || 1;
                 const lapBadge = `<span class="lap-badge">${currentLap}周目 / ${totalLaps}周</span>`;
-
-                let activeCompletedVol = sub.isCompletedToday && sub.history ? sub.history.completedVol : sub.completedVol;
 
                 let taskHtml = '';
                 
@@ -660,14 +680,14 @@
                     `;
                 } else {
                     if(isAdvance) {
-                        const startNum = sub.startNum + activeCompletedVol;
+                        const startNum = sub.startNum + sub.completedVol;
                         const endNum = Math.min(startNum + sub.quota - 1, sub.endNum);
                         const step = sub.step || 1;
 
                         const displayStart = this.formatUnitLabel(startNum, sub.unit);
                         const displayEnd = this.formatUnitLabel(endNum, sub.unit);
                         
-                        let cycleStartVol = Math.max(0, activeCompletedVol - (cDay - 1) * sub.quota);
+                        let cycleStartVol = Math.max(0, sub.completedVol - (cDay - 1) * sub.quota);
                         let cycleEndVol = cycleStartVol + (sub.quota * 4) - 1;
                         let weekStartLabel = this.formatUnitLabel(sub.startNum + cycleStartVol, sub.unit);
                         let weekEndLabel = this.formatUnitLabel(Math.min(sub.startNum + cycleEndVol, sub.endNum), sub.unit);
@@ -706,7 +726,7 @@
                             </div>
                             <div style="display: ${step === 2 ? 'block' : 'none'};">
                                 <div style="font-size: 0.85rem; color: #D32F2F; font-weight: bold; margin-bottom: 10px; background: #FFEBEE; padding: 12px; border-radius: 8px; text-align: center;">2. 解き直しモード 🔥<br><span style="font-size: 0.75rem; color: #333; font-weight: normal; display: block; margin-top: 5px;">〇だった問題はスルーでOK！印をつけた問題だけ解き直そう！</span></div>
-                                <button class="btn-undo" onclick="App.backToStep1(${index})" style="padding:4px 8px; font-size:0.8rem; border:1px solid #ccc; background:#fff; margin-bottom:10px;">↩ 数を修正する</button>
+                                <button class="btn-undo" onclick="App.backToStep1(${index})" style="padding:4px 8px; font-size:0.8rem; border:1px solid #ccc; background:#fff; margin-bottom:10px; text-decoration:none;">↩ 数を修正する</button>
                             </div>
                         `;
                     } else {
@@ -728,7 +748,7 @@
                 }
 
                 listContainer.innerHTML += `
-                    <div class="card subject-card">
+                    <div class="card subject-card ${sub.isCompletedToday ? 'completed' : ''}">
                         <div class="subject-header">
                             <div class="subject-title">${sub.title} ${lapBadge} <button class="btn-edit" onclick="App.openSubjectModal('edit', ${index})">⚙️</button></div>
                             ${cycleBadge}
@@ -744,7 +764,10 @@
                     reviewContainer.innerHTML += `<div class="card" style="border-left: 4px solid var(--warning);"><h4 style="color:var(--text-main); margin-bottom:10px;">${sub.title}</h4><div style="display:flex; justify-content:space-around; text-align:center;"><div><span class="badge-tri">△</span><strong style="display:block; margin-top:5px; font-size:1.2rem; color:var(--warning);">${sub.tri}</strong></div><div><span class="badge-cross">×</span><strong style="display:block; margin-top:5px; font-size:1.2rem; color:var(--danger);">${sub.cross}</strong></div></div>${notesHtml}</div>`;
                 }
 
-                const pct = Math.floor((((currentLap - 1) * sub.totalVol) + activeCompletedVol) / (totalLaps * sub.totalVol) * 100);
+                // プログレス計算 (完了前ボリュームベース)
+                let activeProgressVol = sub.isCompletedToday && sub.history ? sub.history.completedVol : sub.completedVol;
+                const pct = Math.floor((((currentLap - 1) * sub.totalVol) + activeProgressVol) / (totalLaps * sub.totalVol) * 100);
+                
                 progressContainer.innerHTML += `<div class="card"><div style="display:flex; justify-content:space-between; margin-bottom:10px;"><h4 style="color:var(--text-main); font-size:1rem;">${sub.title} ${lapBadge}</h4><span style="font-size:0.8rem; color:var(--primary); font-weight:bold;">試験まで ${diffDays} 日</span></div><div class="progress-box"><div class="progress-header"><span>全体進捗率</span><span>${pct}%</span></div><div class="progress-bg"><div class="progress-fill" style="width:${pct}%;"></div></div><div style="text-align:right; font-size:0.8rem; color:var(--text-sub); margin-top:5px;">現在の周: ${activeProgressVol} / ${sub.totalVol} 完了</div></div></div>`;
             });
         },
@@ -790,7 +813,6 @@
                         let activeProgressVol = sub.isCompletedToday && sub.history ? sub.history.completedVol : sub.completedVol;
                         const percent = Math.floor((((sub.currentLap || 1) - 1) * sub.totalVol + activeProgressVol) / ((sub.laps || 1) * sub.totalVol) * 100);
                         
-                        // 🌟【新機能】タイムスタンプ表示
                         let timeLabel = sub.completedAt ? `<span style="font-size:0.7rem; color:#8E8E93; display:block; margin-top:2px;">⏱️ 最終完了: ${sub.completedAt}</span>` : `<span style="font-size:0.7rem; color:#FF9500; display:block; margin-top:2px;">⚠️ 本日未完了</span>`;
 
                         subHtml += `
@@ -829,7 +851,6 @@
                         if(!sub.isCompletedToday && sub.cycleDay >= 1 && sub.cycleDay <= 4) {
                             sub.quota = this.calculateQuota(sub.totalVol, sub.completedVol, sub.targetDate, sub.laps || 1, sub.currentLap || 1);
                         }
-                        // 日付が進むとき、完了フラグと確定テキストだけクリア
                         sub.isCompletedToday = false;
                         sub.step = 1; 
                         sub.lastCompletedRangeText = null;
@@ -841,14 +862,6 @@
                 }
                 this.saveDB();
                 alert("翌日になりました！生徒のノルマが最新の状況に合わせて自動計算されました。");
-            }
-        },
-
-        resetAllData: function() {
-            if(confirm("【警告】すべてのデータを完全に消去しますか？")) {
-                database.ref('kst_app_data_v24').remove();
-                localStorage.removeItem('kst_cloud_user');
-                location.reload();
             }
         }
     };
